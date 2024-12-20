@@ -1,6 +1,0 @@
-[submodule "ICO/lib/forge-std"]
-	path = ICO/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "ICO/lib/openzeppelin-contracts"]
-	path = ICO/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
