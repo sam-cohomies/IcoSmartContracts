@@ -10,7 +10,10 @@
   "settings": {
     "terminal.integrated.defaultProfile.linux": "bash"
   },
-  "extensions": ["rust-lang.rust-analyzer"],
+  "extensions": [
+    "rust-lang.rust-analyzer",
+    "JuanBlanco.solidity",
+  ],
   "workspaceFolder": "/app", // Ensure workspace is mapped correctly
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind" // Bind mount local project folder
 }
