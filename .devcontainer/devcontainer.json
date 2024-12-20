@@ -1,0 +1,16 @@
+{
+  "name": "Foundry ARM64",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "args": {
+      "PLATFORM": "linux/arm64"
+    }
+  },
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  },
+  "extensions": ["rust-lang.rust-analyzer"],
+  "workspaceFolder": "/app", // Ensure workspace is mapped correctly
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind" // Bind mount local project folder
+}
