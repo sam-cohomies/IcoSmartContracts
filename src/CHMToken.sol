@@ -10,13 +10,13 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 /// @custom:security-contact sam@cohomies.io
-contract CoHomies is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
-    constructor(address _accessControlManager, address vestingEscrow)
+contract CHMToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
+    constructor(address _accessControlManager, address escrowInitial)
         ERC20("CoHomies", "CHM")
         AccessManaged(_accessControlManager)
         ERC20Permit("CoHomies")
     {
-        _mint(vestingEscrow, 2000000 * 10 ** decimals());
+        _mint(escrowInitial, 2000000 * 10 ** decimals());
     }
 
     function pause() public restricted {
