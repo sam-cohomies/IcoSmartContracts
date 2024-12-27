@@ -44,20 +44,22 @@ contract Deploy is Script {
 
         // Restrict functions
         bytes4[] memory chmPauserSelectors = [chm.pause.selector, chm.unpause.selector];
-        restrictFunctions(manager, address(chm), chmPauserSelectors, "CHM_TOKEN_PAUSER");
+        _restrictFunctions(manager, roleUtility, address(chm), chmPauserSelectors, "CHM_TOKEN_PAUSER");
 
         // TODO: restrict ICO functions
         // bytes4[] memory icoPauserSelectors = []; // TODO: add ICO pauser selectors
-        // restrictFunctions(
+        // _restrictFunctions(
         //     manager,
+        //     roleUtility,
         //     address(0), // TODO: replace with ICO contract address
         //     icoPauserSelectors,
         //     "CHM_ICO_PAUSER"
         // );
 
         // bytes4[] memory icoEnderSelectors = []; // TODO: add ICO ender selectors
-        // restrictFunctions(
+        // _restrictFunctions(
         //     manager,
+        //     roleUtility,
         //     address(0), // TODO: replace with ICO contract address
         //     icoEnderSelectors,
         //     "CHM_ICO_ENDER"
@@ -66,9 +68,13 @@ contract Deploy is Script {
         vm.stopBroadcast();
     }
 
-    function restrictFunctions(AccessManager manager, address target, bytes4[] memory selectors, string memory role)
-        public
-    {
+    function _restrictFunctions(
+        AccessManager manager,
+        RoleUtility roleUtility,
+        address target,
+        bytes4[] memory selectors,
+        string memory role
+    ) internal {
         Role memory roleData = roleUtility.getRoleIds(role);
         manager.setTargetFunctionRole(target, selectors, roleData.roleId);
         manager.setRoleGuardian(roleData.roleId, roleData.guardianRoleId);
