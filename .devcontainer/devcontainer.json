@@ -7,13 +7,42 @@
       "PLATFORM": "linux/arm64"
     }
   },
-  "settings": {
-    "terminal.integrated.defaultProfile.linux": "bash"
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.tabSize": 4,
+        "editor.renderWhitespace": "all",
+        "editor.minimap.enabled": false,
+        "git.confirmSync": false,
+        "git.autofetch": true,
+        "git.enableSmartCommit": true,
+        "git.ignoreRebaseWarning": true,
+        "indentRainbow.indicatorStyle": "light",
+        "indentRainbow.colors": [
+          "rgba(255, 128, 128, 0.4)",
+          "rgba(255, 145, 36, 0.4)",
+          "rgba(189, 189, 0, 0.4)",
+          "rgba(41, 255, 41, 0.4)",
+          "rgba(0, 235, 235, 0.4)",
+          "rgba(102, 178, 255, 0.4)",
+          "rgba(153, 153, 255, 0.4)",
+          "rgba(194, 133, 255, 0.4)",
+          "rgba(255, 107, 230, 0.4)"
+        ],
+        "solidity.linter": "solhint",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "workbench.colorTheme": "Default Dark Modern"
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "JuanBlanco.solidity",
+        "EditorConfig.EditorConfig",
+        "oderwat.indent-rainbow",
+        "trailofbits.slither-vscode",
+        "esbenp.prettier-vscode"
+      ]
+    }
   },
-  "extensions": [
-    "rust-lang.rust-analyzer",
-    "JuanBlanco.solidity",
-  ],
   "workspaceFolder": "/app", // Ensure workspace is mapped correctly
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind" // Bind mount local project folder
 }
