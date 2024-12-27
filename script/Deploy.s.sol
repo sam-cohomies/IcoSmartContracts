@@ -28,7 +28,7 @@ contract Deploy is Script {
         AccessManager manager = new AccessManager(admin);
 
         // Roles
-        string[] roles = ["CHM_TOKEN_PAUSER", "CHM_ICO_PAUSER", "CHM_ICO_ENDER"];
+        string[] memory roles = ["CHM_TOKEN_PAUSER", "CHM_ICO_PAUSER", "CHM_ICO_ENDER"];
 
         // Execution delays
         // TODO: Set appropriate execution delays
