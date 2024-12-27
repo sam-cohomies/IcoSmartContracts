@@ -1,5 +1,5 @@
 # Use an ARM64-compatible base image
-FROM rust:latest as builder
+FROM rust:latest AS builder
 
 # Install required dependencies
 RUN apt-get update && apt-get install -y \
