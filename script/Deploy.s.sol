@@ -1,35 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.22;
+pragma solidity 0.8.28;
 
 import {Script} from "lib/forge-std/src/Script.sol";
-import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
+import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
+import {Role, RoleUtility} from "../src/RoleUtility.sol";
+
 
 contract Deploy is Script {
-    AccessManager manager;
-    CHMToken chm;
+    RoleUtility private roleUtility;
+    AccessManager private manager;
+    CHMToken private chm;
 
-    // Roles
-    uint64 public constant CALLER_ROLE = 1;
-    uint64 public constant CALLER_GUARDIAN_ROLE = 2;
-    uint64 public constant CALLER_ADMIN_ROLE = 3;
-
-    uint64 public constant PAUSER_ROLE = 4;
-    uint64 public constant PAUSER_GUARDIAN_ROLE = 5;
-    uint64 public constant PAUSER_ADMIN_ROLE = 6;
-
-    // Execution delays
-    // TODO: Set the execution delays to the appropriate values
-    uint64 public constant CALLER_ROLE_EXECUTION_DELAY = 1 days;
-    uint64 public constant CALLER_GUARDIAN_ROLE_EXECUTION_DELAY = 1 days;
-    uint64 public constant CALLER_ADMIN_ROLE_EXECUTION_DELAY = 1 days;
-
-    uint64 public constant PAUSER_ROLE_EXECUTION_DELAY = 1 days;
-    uint64 public constant PAUSER_GUARDIAN_ROLE_EXECUTION_DELAY = 1 days;
-    uint64 public constant PAUSER_ADMIN_ROLE_EXECUTION_DELAY = 1 days;
-
-    function setUp() public {}
+    error InvalidAdminAddress(address admin);
 
     function run() public {
         // Load the admin address from the environment variable
@@ -38,8 +22,9 @@ contract Deploy is Script {
         string memory escrowInitialEnvVar = vm.envString("ESCROW_INITIAL_MULTISIG");
         address escrowInitial = vm.parseAddress(escrowInitialEnvVar);
 
-        // Ensure admin address is valid
-        require(admin != address(0), "Invalid admin address");
+        if (admin == address(0)) {
+            revert InvalidAdminAddress(admin);
+        }
 
         // Start broadcasting the transaction from the caller's address
         vm.startBroadcast();
@@ -47,31 +32,104 @@ contract Deploy is Script {
         // Deploy CHMAccessManager
         manager = new AccessManager(admin);
 
+        // Roles
+        string[] roles = [
+            "CHM_TOKEN_PAUSER",
+            "CHM_ICO_PAUSER",
+            "CHM_ICO_ENDER"
+        ];
+
+        // Execution delays
+        // TODO: Set appropriate execution delays
+
+        // Deploy RoleUtility
+        roleUtility = new RoleUtility(
+            address(manager),
+            roles
+        );
+
         // Deploy CHMToken
         CHMToken chm = new CHMToken(
             address(manager),
             address(escrowInitial)
         );
 
-        // Deploy CoHomies
+        // Deploy ICO
+        // TODO: develop ICO contract
 
         // Restrict functions
-        manager.setTargetFunctionRole(
+        bytes4[] memory chmPauserSelectors = [
+            chm.pause.selector,
+            chm.unpause.selector
+        ];
+        restrictFunctions(
+            manager,
             address(chm),
-            _asSingletonArray(CHMToken.pause.selector),
-            PAUSER_ROLE
+            chmPauserSelectors,
+            "CHM_TOKEN_PAUSER"
         );
+        
+        // TODO: restrict ICO functions
+        // bytes4[] memory icoPauserSelectors = []; // TODO: add ICO pauser selectors
+        // restrictFunctions(
+        //     manager,
+        //     address(0), // TODO: replace with ICO contract address
+        //     icoPauserSelectors,
+        //     "CHM_ICO_PAUSER"
+        // );
 
-        manager.setTargetFunctionRole(
-            address(chm),
-            _asSingletonArray(CHMToken.unpause.selector),
-            PAUSER_ROLE
-        );
+        // bytes4[] memory icoEnderSelectors = []; // TODO: add ICO ender selectors
+        // restrictFunctions(
+        //     manager,
+        //     address(0), // TODO: replace with ICO contract address
+        //     icoEnderSelectors,
+        //     "CHM_ICO_ENDER"
+        // );
 
         vm.stopBroadcast();
+    }
 
-        // Log the deployed contract address
-        console.log("YourContract deployed at:", address(yourContract));
-        console.log("Admin set to:", admin);
+    function restrictFunctions(
+        AccessManager manager,
+        address target,
+        bytes4[] memory selectors,
+        string memory role
+    ) public {
+        Role memory roleData = roleUtility.getRoleIds(role);
+        manager.setTargetFunctionRole(
+            target,
+            selectors,
+            roleData.roleId
+        );
+        manager.setRoleGuardian(
+            roleData.roleId,
+            roleData.guardianRoleId
+        );
+        manager.setRoleAdmin(
+            roleData.roleId,
+            roleData.adminRoleId
+        );
+        manager.setRoleAdmin(
+            roleData.guardianRoleId,
+            roleData.adminRoleId
+        );
+        manager.labelRole(
+            roleData.roleId,
+            role
+        );
+        manager.labelRole(
+            roleData.guardianRoleId,
+            string(abi.encodePacked(role, "_GUARDIAN"))
+        );
+        manager.labelRole(
+            roleData.adminRoleId,
+            string(abi.encodePacked(role, "_ADMIN"))
+        );
+    }
+
+    function _asSingletonArray(bytes4 element) private pure returns (bytes4[] memory) {
+        bytes4[] memory array = new bytes4[](1);
+        array[0] = element;
+        return array;
     }
 }
