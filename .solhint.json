@@ -1,0 +1,17 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "indentation": ["error", 4],
+    "quotes": ["error", "double"],
+    "gas-calldata-parameters": "warn",
+    "gas-increment-by-one": "warn",
+    "gas-indexed-events": "warn",
+    "gas-length-in-loops": "warn",
+    "gas-multitoken1155": "warn",
+    "gas-named-return-values": "warn",
+    "gas-small-strings": "warn",
+    "gas-strict-inequalities": "warn",
+    "gas-struct-packing": "warn",
+    "max-line-length": ["error", { "limit": 120 }]
+  }
+}
