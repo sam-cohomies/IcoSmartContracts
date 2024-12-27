@@ -28,7 +28,10 @@ contract Deploy is Script {
         AccessManager manager = new AccessManager(admin);
 
         // Roles
-        string[] memory roles = ["CHM_TOKEN_PAUSER", "CHM_ICO_PAUSER", "CHM_ICO_ENDER"];
+        string[] memory roles = new string[](3);
+        roles[0] = "CHM_TOKEN_PAUSER";
+        roles[1] = "CHM_ICO_PAUSER";
+        roles[2] = "CHM_ICO_ENDER";
 
         // Execution delays
         // TODO: Set appropriate execution delays
@@ -43,7 +46,9 @@ contract Deploy is Script {
         // TODO: develop ICO contract
 
         // Restrict functions
-        bytes4[] memory chmPauserSelectors = [chm.pause.selector, chm.unpause.selector];
+        bytes4[] memory chmPauserSelectors = new bytes4(2);
+        chmPauserSelectors[0] = chm.pause.selector;
+        chmPauserSelectors[1] = chm.unpause.selector;
         _restrictFunctions(manager, roleUtility, address(chm), chmPauserSelectors, "CHM_TOKEN_PAUSER");
 
         // TODO: restrict ICO functions

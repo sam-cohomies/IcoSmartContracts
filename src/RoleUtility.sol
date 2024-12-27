@@ -29,7 +29,7 @@ contract RoleUtility is AccessManaged {
     constructor(address _accessControlManager, string[] memory initialRoles) AccessManaged(_accessControlManager) {
         // Initialize with predefined roles
         uint256 initialRolesLength = initialRoles.length;
-        for (uint64 i = 0; i < initialRolesLength; ++i) {
+        for (uint256 i = 0; i < initialRolesLength; ++i) {
             addRole(initialRoles[i]);
         }
     }
@@ -39,7 +39,7 @@ contract RoleUtility is AccessManaged {
         if (roleMapping[roleName].roleId == 0) {
             revert RoleAlreadyExists(roleName);
         }
-        uint64 len3 = 3 * roleNames.length;
+        uint256 len3 = 3 * roleNames.length;
         Role memory role = Role(len3 + 1, len3 + 2, len3 + 3);
         roleMapping[roleName] = role;
         roleNames.push(roleName);

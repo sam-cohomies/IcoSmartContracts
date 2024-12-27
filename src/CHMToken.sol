@@ -14,8 +14,8 @@ contract CHMToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Vote
     constructor(address _accessControlManager, address escrowInitial)
         ERC20("CoHomies", "CHM")
         AccessManaged(_accessControlManager)
+        ERC20Permit("CoHomies")
     {
-        ERC20Permit("CoHomies");
         _mint(escrowInitial, 2 * (10 ** (9 + decimals())));
     }
 
