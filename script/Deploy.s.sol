@@ -7,7 +7,6 @@ import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager
 import {CHMToken} from "../src/CHMToken.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
-
 contract Deploy is Script {
     RoleUtility private roleUtility;
     AccessManager private manager;
@@ -33,42 +32,24 @@ contract Deploy is Script {
         manager = new AccessManager(admin);
 
         // Roles
-        string[] roles = [
-            "CHM_TOKEN_PAUSER",
-            "CHM_ICO_PAUSER",
-            "CHM_ICO_ENDER"
-        ];
+        string[] roles = ["CHM_TOKEN_PAUSER", "CHM_ICO_PAUSER", "CHM_ICO_ENDER"];
 
         // Execution delays
         // TODO: Set appropriate execution delays
 
         // Deploy RoleUtility
-        roleUtility = new RoleUtility(
-            address(manager),
-            roles
-        );
+        roleUtility = new RoleUtility(address(manager), roles);
 
         // Deploy CHMToken
-        CHMToken chm = new CHMToken(
-            address(manager),
-            address(escrowInitial)
-        );
+        CHMToken chm = new CHMToken(address(manager), address(escrowInitial));
 
         // Deploy ICO
         // TODO: develop ICO contract
 
         // Restrict functions
-        bytes4[] memory chmPauserSelectors = [
-            chm.pause.selector,
-            chm.unpause.selector
-        ];
-        restrictFunctions(
-            manager,
-            address(chm),
-            chmPauserSelectors,
-            "CHM_TOKEN_PAUSER"
-        );
-        
+        bytes4[] memory chmPauserSelectors = [chm.pause.selector, chm.unpause.selector];
+        restrictFunctions(manager, address(chm), chmPauserSelectors, "CHM_TOKEN_PAUSER");
+
         // TODO: restrict ICO functions
         // bytes4[] memory icoPauserSelectors = []; // TODO: add ICO pauser selectors
         // restrictFunctions(
@@ -89,42 +70,17 @@ contract Deploy is Script {
         vm.stopBroadcast();
     }
 
-    function restrictFunctions(
-        AccessManager manager,
-        address target,
-        bytes4[] memory selectors,
-        string memory role
-    ) public {
+    function restrictFunctions(AccessManager manager, address target, bytes4[] memory selectors, string memory role)
+        public
+    {
         Role memory roleData = roleUtility.getRoleIds(role);
-        manager.setTargetFunctionRole(
-            target,
-            selectors,
-            roleData.roleId
-        );
-        manager.setRoleGuardian(
-            roleData.roleId,
-            roleData.guardianRoleId
-        );
-        manager.setRoleAdmin(
-            roleData.roleId,
-            roleData.adminRoleId
-        );
-        manager.setRoleAdmin(
-            roleData.guardianRoleId,
-            roleData.adminRoleId
-        );
-        manager.labelRole(
-            roleData.roleId,
-            role
-        );
-        manager.labelRole(
-            roleData.guardianRoleId,
-            string(abi.encodePacked(role, "_GUARDIAN"))
-        );
-        manager.labelRole(
-            roleData.adminRoleId,
-            string(abi.encodePacked(role, "_ADMIN"))
-        );
+        manager.setTargetFunctionRole(target, selectors, roleData.roleId);
+        manager.setRoleGuardian(roleData.roleId, roleData.guardianRoleId);
+        manager.setRoleAdmin(roleData.roleId, roleData.adminRoleId);
+        manager.setRoleAdmin(roleData.guardianRoleId, roleData.adminRoleId);
+        manager.labelRole(roleData.roleId, role);
+        manager.labelRole(roleData.guardianRoleId, string(abi.encodePacked(role, "_GUARDIAN")));
+        manager.labelRole(roleData.adminRoleId, string(abi.encodePacked(role, "_ADMIN")));
     }
 
     function _asSingletonArray(bytes4 element) private pure returns (bytes4[] memory) {

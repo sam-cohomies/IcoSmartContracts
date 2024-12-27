@@ -13,7 +13,6 @@ struct Role {
 }
 
 contract RoleUtility is AccessManaged {
-
     // Event to notify when a new role is added
     event RoleAdded(string roleName, Role role);
 
@@ -26,9 +25,7 @@ contract RoleUtility is AccessManaged {
     // Custom error for non-existent role
     error RoleDoesNotExist(string roleName);
 
-    constructor(address _accessControlManager, string[] calldata initialRoles)
-        AccessManaged(_accessControlManager)
-    {
+    constructor(address _accessControlManager, string[] calldata initialRoles) AccessManaged(_accessControlManager) {
         // Initialize with predefined roles
         uint256 initialRolesLength = initialRoles.length;
         for (uint64 i = 0; i < initialRolesLength; ++i) {
