@@ -22,26 +22,27 @@ contract RoleUtility is AccessManaged {
     // List of all role names for enumeration purposes
     string[] private roleNames;
 
-    // Custom error for non-existent role
+    // Custom errors
+    error RoleAlreadyExists(string roleName);
     error RoleDoesNotExist(string roleName);
 
     constructor(address _accessControlManager, string[] calldata initialRoles) AccessManaged(_accessControlManager) {
         // Initialize with predefined roles
         uint256 initialRolesLength = initialRoles.length;
         for (uint64 i = 0; i < initialRolesLength; ++i) {
-            _addRole(initialRoles[i]);
+            addRole(initialRoles[i]);
         }
     }
 
     // Add a new role and associated subroles
-    function addRole(string memory roleName) restricted {
+    function addRole(string memory roleName) public restricted {
         if (roleMapping[roleName].roleId == 0) {
             revert RoleAlreadyExists(roleName);
         }
-        uint64 len3 = 3 * roleList.length;
+        uint64 len3 = 3 * roleNames.length;
         Role memory role = Role(len3 + 1, len3 + 2, len3 + 3);
         roleMapping[roleName] = role;
-        roleList.push(roleName);
+        roleNames.push(roleName);
         emit RoleAdded(roleName, role);
     }
 

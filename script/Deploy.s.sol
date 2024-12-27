@@ -8,10 +8,6 @@ import {CHMToken} from "../src/CHMToken.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
 contract Deploy is Script {
-    RoleUtility private roleUtility;
-    AccessManager private manager;
-    CHMToken private chm;
-
     error InvalidAdminAddress(address admin);
 
     function run() public {
@@ -29,7 +25,7 @@ contract Deploy is Script {
         vm.startBroadcast();
 
         // Deploy CHMAccessManager
-        manager = new AccessManager(admin);
+        AccessManager manager = new AccessManager(admin);
 
         // Roles
         string[] roles = ["CHM_TOKEN_PAUSER", "CHM_ICO_PAUSER", "CHM_ICO_ENDER"];
@@ -38,7 +34,7 @@ contract Deploy is Script {
         // TODO: Set appropriate execution delays
 
         // Deploy RoleUtility
-        roleUtility = new RoleUtility(address(manager), roles);
+        RoleUtility roleUtility = new RoleUtility(address(manager), roles);
 
         // Deploy CHMToken
         CHMToken chm = new CHMToken(address(manager), address(escrowInitial));
