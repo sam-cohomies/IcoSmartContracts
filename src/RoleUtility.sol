@@ -39,7 +39,7 @@ contract RoleUtility is AccessManaged {
         if (roleMapping[roleName].roleId == 0) {
             revert RoleAlreadyExists(roleName);
         }
-        uint256 len3 = 3 * roleNames.length;
+        uint64 len3 = uint64(3 * roleNames.length);
         Role memory role = Role(len3 + 1, len3 + 2, len3 + 3);
         roleMapping[roleName] = role;
         roleNames.push(roleName);

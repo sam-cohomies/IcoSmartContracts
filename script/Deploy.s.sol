@@ -46,7 +46,7 @@ contract Deploy is Script {
         // TODO: develop ICO contract
 
         // Restrict functions
-        bytes4[] memory chmPauserSelectors = new bytes4(2);
+        bytes4[] memory chmPauserSelectors = new bytes4[](2);
         chmPauserSelectors[0] = chm.pause.selector;
         chmPauserSelectors[1] = chm.unpause.selector;
         _restrictFunctions(manager, roleUtility, address(chm), chmPauserSelectors, "CHM_TOKEN_PAUSER");
