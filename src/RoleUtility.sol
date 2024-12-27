@@ -26,7 +26,7 @@ contract RoleUtility is AccessManaged {
     error RoleAlreadyExists(string roleName);
     error RoleDoesNotExist(string roleName);
 
-    constructor(address _accessControlManager, string[] calldata initialRoles) AccessManaged(_accessControlManager) {
+    constructor(address _accessControlManager, string[] memory initialRoles) AccessManaged(_accessControlManager) {
         // Initialize with predefined roles
         uint256 initialRolesLength = initialRoles.length;
         for (uint64 i = 0; i < initialRolesLength; ++i) {
