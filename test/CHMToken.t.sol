@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {console, Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
+import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
@@ -90,6 +91,20 @@ contract CHMTokenTest is Test {
 
         assertEq(userBalance, transferAmount, "User balance mismatch");
         assertEq(deployerBalance, 2 * 10 ** (9 + 18) - transferAmount, "Deployer balance mismatch");
+    }
+
+    function testTransferInsufficientFunds() public {
+        // Attempt to transfer more tokens than the sender has
+        uint256 transferAmount = 3 * 10 ** (9 + 18);
+
+        // Attempt to transfer more tokens than the sender has
+        vm.prank(deployer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector, deployer, 2 * 10 ** (9 + 18), transferAmount
+            )
+        );
+        token.transfer(userNonPauser, transferAmount);
     }
 
     function testPauseAndUnpause() public {
