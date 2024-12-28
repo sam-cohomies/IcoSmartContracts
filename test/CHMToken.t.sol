@@ -22,6 +22,18 @@ contract CHMTokenTest is Test {
         vm.stopPrank();
     }
 
+    function testTokenName() public view {
+        // Verify the token name
+        string memory name = token.name();
+        assertEq(name, "CoHomies", "Token name mismatch");
+    }
+
+    function testTokenSymbol() public view {
+        // Verify the token symbol
+        string memory symbol = token.symbol();
+        assertEq(symbol, "CHM", "Token symbol mismatch");
+    }
+
     function testInitialSupply() public view {
         // Verify the total supply matches the initial supply
         uint256 totalSupply = token.totalSupply();
