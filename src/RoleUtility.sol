@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {AccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol";
+import {console} from "lib/forge-std/src/Test.sol";
 
 struct Role {
     // Base role - can do action
@@ -30,13 +31,18 @@ contract RoleUtility is AccessManaged {
         // Initialize with predefined roles
         uint256 initialRolesLength = initialRoles.length;
         for (uint256 i = 0; i < initialRolesLength; ++i) {
-            addRole(initialRoles[i]);
+            _addRole(initialRoles[i]);
         }
     }
 
-    // Add a new role and associated subroles
-    function addRole(string memory roleName) public restricted {
-        if (roleMapping[roleName].roleId == 0) {
+    // External function to add a new role, guardian, and admin
+    function addRole(string memory roleName) external restricted {
+        _addRole(roleName);
+    }
+
+    // Internal function to add a new role, guardian, and admin
+    function _addRole(string memory roleName) internal {
+        if (roleMapping[roleName].roleId != 0) {
             revert RoleAlreadyExists(roleName);
         }
         uint64 len3 = uint64(3 * roleNames.length);
