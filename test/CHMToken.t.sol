@@ -5,6 +5,7 @@ import {console, Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
 import {IAccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManaged.sol";
+import {IAccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol";
 import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
@@ -22,6 +23,8 @@ contract CHMTokenTest is Test {
     address private pauserAdmin = address(6);
     address private spender = address(7);
     address private recipient = address(8);
+
+    uint32 private constant DELAY = 100;
 
     function setUp() public {
         // Deploy the token contract
@@ -44,7 +47,7 @@ contract CHMTokenTest is Test {
         manager.setRoleAdmin(roleData.adminRoleId, manager.ADMIN_ROLE());
         manager.grantRole(roleData.roleId, deployer, 0);
         manager.grantRole(roleData.roleId, userPauserNoDelay, 0);
-        manager.grantRole(roleData.roleId, userPauserDelay, 10);
+        manager.grantRole(roleData.roleId, userPauserDelay, DELAY);
         manager.grantRole(roleData.guardianRoleId, pauserGuardian, 0);
         manager.grantRole(roleData.adminRoleId, pauserAdmin, 0);
 
@@ -249,20 +252,40 @@ contract CHMTokenTest is Test {
     }
 
     function testDelayedPauserCanPauseAfterDelay() public {
-        // store abi.encodeWithSelector(token.pause.selector)
         bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
         // Schedule pause
         vm.prank(userPauserDelay);
         (bytes32 operationId, uint32 nonce) =
-            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + 10));
+            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
         assertFalse(token.paused(), "Token should not be paused immediately");
 
         // Move forward in time
-        vm.warp(block.timestamp + 10);
+        vm.warp(block.timestamp + DELAY);
 
         // Execute pause
         vm.prank(userPauserDelay);
         manager.execute(address(token), pauseSelector);
         assertTrue(token.paused(), "Token should be paused after delay");
+    }
+
+    function testGuardianCanCancelDelayedPause() public {
+        bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
+        // Schedule pause
+        vm.prank(userPauserDelay);
+        (bytes32 operationId, uint32 nonce) =
+            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+        assertFalse(token.paused(), "Token should not be paused immediately");
+
+        // Guardian cancels the scheduled pause
+        vm.prank(pauserGuardian);
+        manager.cancel(userPauserDelay, address(token), pauseSelector);
+
+        // Move forward in time
+        vm.warp(block.timestamp + DELAY);
+
+        // Attempt to execute pause
+        vm.prank(userPauserDelay);
+        vm.expectRevert(abi.encodeWithSelector(IAccessManager.AccessManagerNotScheduled.selector, operationId));
+        manager.execute(address(token), pauseSelector);
     }
 }
