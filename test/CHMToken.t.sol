@@ -333,4 +333,44 @@ contract CHMTokenTest is Test {
         manager.execute(address(token), pauseSelector);
         assertTrue(token.paused(), "Token should be paused after delay expires");
     }
+
+    function testAdminCanGrantAndRevokeGuardianRole() public {
+        Role memory roleData = roleUtility.getRoleIds("CHM_TOKEN_PAUSER");
+
+        // Grant guardian role to a new user
+        vm.prank(pauserAdmin);
+        manager.grantRole(roleData.guardianRoleId, userNonPauser, 0);
+
+        // Schedule a pause
+        bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
+
+        vm.prank(userPauserDelay);
+        (bytes32 operationId, uint32 nonce) =
+            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+
+        // Verify new guardian can cancel
+        vm.prank(userNonPauser);
+        manager.cancel(userPauserDelay, address(token), pauseSelector);
+
+        // Revoke guardian role from the user
+        vm.prank(pauserAdmin);
+        manager.revokeRole(roleData.guardianRoleId, userNonPauser);
+
+        // Schedule a new pause
+        vm.prank(userPauserDelay);
+        (operationId, nonce) = manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+
+        // Verify revoked guardian cannot cancel
+        vm.prank(userNonPauser);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessManager.AccessManagerUnauthorizedCancel.selector,
+                userNonPauser,
+                userPauserDelay,
+                address(token),
+                token.pause.selector
+            )
+        );
+        manager.cancel(userPauserDelay, address(token), pauseSelector);
+    }
 }
