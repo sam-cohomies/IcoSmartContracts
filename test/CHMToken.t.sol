@@ -312,4 +312,25 @@ contract CHMTokenTest is Test {
         token.pause();
         assertTrue(token.paused(), "Token should be paused by new pauser");
     }
+
+    function testExecutionTimingForDelayedPauser() public {
+        bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
+        // Schedule pause
+        vm.prank(userPauserDelay);
+        (bytes32 operationId, uint32 nonce) =
+            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+        assertFalse(token.paused(), "Token should not be paused immediately");
+
+        // Attempt to pause before delay expires
+        vm.warp(block.timestamp + DELAY - 1);
+        vm.prank(userPauserDelay);
+        vm.expectRevert(abi.encodeWithSelector(IAccessManager.AccessManagerNotReady.selector, operationId));
+        manager.execute(address(token), pauseSelector);
+
+        // Pause after delay expires
+        vm.warp(block.timestamp + DELAY);
+        vm.prank(userPauserDelay);
+        manager.execute(address(token), pauseSelector);
+        assertTrue(token.paused(), "Token should be paused after delay expires");
+    }
 }
