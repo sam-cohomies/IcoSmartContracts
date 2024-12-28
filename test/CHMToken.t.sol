@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {console, Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
+import {IAccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManaged.sol";
 import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
@@ -215,5 +216,23 @@ contract CHMTokenTest is Test {
         vm.prank(deployer);
         vm.expectRevert(Pausable.EnforcedPause.selector);
         token.transfer(userNonPauser, transferAmount);
+    }
+
+    function testUnauthorizedPauseReverts() public {
+        // Attempt to call `pause` as an unauthorized user
+        vm.prank(userNonPauser);
+        vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, userNonPauser));
+        token.pause();
+    }
+
+    function testUnauthorizedUnpauseReverts() public {
+        // First, pause the contract using an authorized user
+        vm.prank(deployer); // Assuming deployer has PAUSER_ROLE
+        token.pause();
+
+        // Attempt to call `unpause` as an unauthorized user
+        vm.prank(userNonPauser);
+        vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, userNonPauser));
+        token.unpause();
     }
 }
