@@ -19,6 +19,8 @@ contract CHMTokenTest is Test {
     address private userPauserDelay = address(4);
     address private pauserGuardian = address(5);
     address private pauserAdmin = address(6);
+    address private spender = address(7);
+    address private recipient = address(8);
 
     function setUp() public {
         // Deploy the token contract
@@ -105,6 +107,84 @@ contract CHMTokenTest is Test {
             )
         );
         token.transfer(userNonPauser, transferAmount);
+    }
+
+    function testApproveSetsAllowance() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+
+        // Approve spender to spend deployer's tokens
+        vm.prank(deployer);
+        token.approve(spender, allowanceAmount);
+
+        // Check that allowance is set
+        assertEq(token.allowance(deployer, spender), allowanceAmount);
+    }
+
+    function testTransferFromRespectsAllowance() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 transferAmount = 200 * 10 ** token.decimals();
+
+        // Approve spender
+        vm.prank(deployer);
+        token.approve(spender, allowanceAmount);
+
+        // Transfer tokens on behalf of deployer
+        vm.prank(spender);
+        token.transferFrom(deployer, recipient, transferAmount);
+
+        // Check recipient balance
+        assertEq(token.balanceOf(recipient), transferAmount);
+
+        // Check allowance is reduced
+        assertEq(token.allowance(deployer, spender), allowanceAmount - transferAmount);
+    }
+
+    function testTransferFromFailsForInsufficientAllowance() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 transferAmount = 600 * 10 ** token.decimals();
+
+        // Approve spender
+        vm.prank(deployer);
+        token.approve(spender, allowanceAmount);
+
+        // Attempt to transfer more than allowed
+        vm.prank(spender);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector, spender, allowanceAmount, transferAmount
+            )
+        );
+        token.transferFrom(deployer, recipient, transferAmount);
+    }
+
+    function testRevokeAllowance() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+
+        // Approve spender
+        vm.prank(deployer);
+        token.approve(spender, allowanceAmount);
+
+        // Revoke allowance
+        vm.prank(deployer);
+        token.approve(spender, 0);
+
+        // Attempt to transfer
+        vm.prank(spender);
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, 500 * 10 ** 18)
+        );
+        token.transferFrom(deployer, recipient, allowanceAmount);
+    }
+
+    function testTransferFromFailsWithNoAllowance() public {
+        uint256 transferAmount = 100 * 10 ** token.decimals();
+
+        // Attempt to transfer without approval
+        vm.prank(spender);
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, transferAmount)
+        );
+        token.transferFrom(deployer, recipient, transferAmount);
     }
 
     function testPauseAndUnpause() public {
