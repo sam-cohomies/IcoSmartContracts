@@ -50,6 +50,8 @@ contract CHMTokenTest is Test {
         manager.grantRole(roleData.roleId, userPauserDelay, DELAY);
         manager.grantRole(roleData.guardianRoleId, pauserGuardian, 0);
         manager.grantRole(roleData.adminRoleId, pauserAdmin, 0);
+        manager.setRoleAdmin(roleData.roleId, roleData.adminRoleId);
+        manager.setRoleAdmin(roleData.guardianRoleId, roleData.adminRoleId);
 
         vm.stopPrank();
     }
@@ -287,5 +289,27 @@ contract CHMTokenTest is Test {
         vm.prank(userPauserDelay);
         vm.expectRevert(abi.encodeWithSelector(IAccessManager.AccessManagerNotScheduled.selector, operationId));
         manager.execute(address(token), pauseSelector);
+    }
+
+    function testAdminCanModifyPermissions() public {
+        Role memory roleData = roleUtility.getRoleIds("CHM_TOKEN_PAUSER");
+
+        // Revoke pauser role from a user
+        vm.prank(pauserAdmin);
+        manager.revokeRole(roleData.roleId, userPauserNoDelay);
+
+        // Verify that user can no longer pause
+        vm.prank(userPauserNoDelay);
+        vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, userPauserNoDelay));
+        token.pause();
+
+        // Grant pauser role to a new user
+        vm.prank(pauserAdmin);
+        manager.grantRole(roleData.roleId, userNonPauser, 0);
+
+        // Verify that new user can now pause
+        vm.prank(userNonPauser);
+        token.pause();
+        assertTrue(token.paused(), "Token should be paused by new pauser");
     }
 }
