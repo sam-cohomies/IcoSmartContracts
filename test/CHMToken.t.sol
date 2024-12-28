@@ -235,4 +235,34 @@ contract CHMTokenTest is Test {
         vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, userNonPauser));
         token.unpause();
     }
+
+    function testImmediatePauserCanPauseAndUnpause() public {
+        // Pause the contract
+        vm.prank(userPauserNoDelay);
+        token.pause();
+        assertTrue(token.paused(), "Token should be paused");
+
+        // Unpause the contract
+        vm.prank(userPauserNoDelay);
+        token.unpause();
+        assertFalse(token.paused(), "Token should be unpaused");
+    }
+
+    function testDelayedPauserCanPauseAfterDelay() public {
+        // store abi.encodeWithSelector(token.pause.selector)
+        bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
+        // Schedule pause
+        vm.prank(userPauserDelay);
+        (bytes32 operationId, uint32 nonce) =
+            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + 10));
+        assertFalse(token.paused(), "Token should not be paused immediately");
+
+        // Move forward in time
+        vm.warp(block.timestamp + 10);
+
+        // Execute pause
+        vm.prank(userPauserDelay);
+        manager.execute(address(token), pauseSelector);
+        assertTrue(token.paused(), "Token should be paused after delay");
+    }
 }
