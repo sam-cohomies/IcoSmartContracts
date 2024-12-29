@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {console, Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
+import {ERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IAccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManaged.sol";
 import {IAccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol";
 import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
@@ -15,18 +16,36 @@ contract CHMTokenTest is Test {
     CHMToken private token;
     RoleUtility private roleUtility;
 
-    address private deployer = address(1);
-    address private userNonPauser = address(2);
-    address private userPauserNoDelay = address(3);
-    address private userPauserDelay = address(4);
-    address private pauserGuardian = address(5);
-    address private pauserAdmin = address(6);
-    address private spender = address(7);
-    address private recipient = address(8);
+    uint256 private constant DEPLOYER_PRIVATE_KEY = 1;
+    uint256 private constant USER_NON_PAUSER_PRIVATE_KEY = 2;
+    uint256 private constant USER_PAUSER_NO_DELAY_PRIVATE_KEY = 3;
+    uint256 private constant USER_PAUSER_DELAY_PRIVATE_KEY = 4;
+    uint256 private constant PAUSER_GUARDIAN_PRIVATE_KEY = 5;
+    uint256 private constant PAUSER_ADMIN_PRIVATE_KEY = 6;
+    uint256 private constant SPENDER_PRIVATE_KEY = 7;
+    uint256 private constant RECIPIENT_PRIVATE_KEY = 8;
+    address private deployer;
+    address private userNonPauser;
+    address private userPauserNoDelay;
+    address private userPauserDelay;
+    address private pauserGuardian;
+    address private pauserAdmin;
+    address private spender;
+    address private recipient;
 
     uint32 private constant DELAY = 100;
 
     function setUp() public {
+        // Derive addresses
+        deployer = vm.addr(DEPLOYER_PRIVATE_KEY);
+        userNonPauser = vm.addr(USER_NON_PAUSER_PRIVATE_KEY);
+        userPauserNoDelay = vm.addr(USER_PAUSER_NO_DELAY_PRIVATE_KEY);
+        userPauserDelay = vm.addr(USER_PAUSER_DELAY_PRIVATE_KEY);
+        pauserGuardian = vm.addr(PAUSER_GUARDIAN_PRIVATE_KEY);
+        pauserAdmin = vm.addr(PAUSER_ADMIN_PRIVATE_KEY);
+        spender = vm.addr(SPENDER_PRIVATE_KEY);
+        recipient = vm.addr(RECIPIENT_PRIVATE_KEY);
+
         // Deploy the token contract
         vm.startPrank(deployer);
         manager = new AccessManager(deployer);
@@ -257,8 +276,7 @@ contract CHMTokenTest is Test {
         bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
         // Schedule pause
         vm.prank(userPauserDelay);
-        (bytes32 operationId, uint32 nonce) =
-            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+        manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
         assertFalse(token.paused(), "Token should not be paused immediately");
 
         // Move forward in time
@@ -274,8 +292,7 @@ contract CHMTokenTest is Test {
         bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
         // Schedule pause
         vm.prank(userPauserDelay);
-        (bytes32 operationId, uint32 nonce) =
-            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+        (bytes32 operationId,) = manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
         assertFalse(token.paused(), "Token should not be paused immediately");
 
         // Guardian cancels the scheduled pause
@@ -317,8 +334,7 @@ contract CHMTokenTest is Test {
         bytes memory pauseSelector = abi.encodeWithSelector(token.pause.selector);
         // Schedule pause
         vm.prank(userPauserDelay);
-        (bytes32 operationId, uint32 nonce) =
-            manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
+        (bytes32 operationId,) = manager.schedule(address(token), pauseSelector, uint48(block.timestamp + DELAY));
         assertFalse(token.paused(), "Token should not be paused immediately");
 
         // Attempt to pause before delay expires
@@ -372,5 +388,150 @@ contract CHMTokenTest is Test {
             )
         );
         manager.cancel(userPauserDelay, address(token), pauseSelector);
+    }
+
+    function calculateDigest(bytes32 structHash) public view returns (bytes32) {
+        bytes32 domainSeparator = token.DOMAIN_SEPARATOR();
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    function testPermitValidSignature() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 nonce = token.nonces(deployer);
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Construct the digest
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                deployer,
+                spender,
+                allowanceAmount,
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = calculateDigest(structHash);
+
+        // Generate a valid signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(DEPLOYER_PRIVATE_KEY, digest);
+
+        // Call permit
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+
+        // Verify allowance
+        assertEq(token.allowance(deployer, spender), allowanceAmount, "Allowance not set correctly");
+    }
+
+    function testPermitInvalidSignature() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 nonce = token.nonces(deployer);
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Construct the digest
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                deployer,
+                spender,
+                allowanceAmount,
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = calculateDigest(structHash);
+
+        // Generate an invalid signature (use a different address)
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(USER_NON_PAUSER_PRIVATE_KEY, digest);
+
+        // Expect revert
+        vm.expectRevert(abi.encodeWithSelector(ERC20Permit.ERC2612InvalidSigner.selector, userNonPauser, deployer));
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+    }
+
+    function testPermitExpiredDeadline() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 nonce = token.nonces(deployer);
+        uint256 deadline = block.timestamp - 1; // Expired
+
+        // Construct the digest
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                deployer,
+                spender,
+                allowanceAmount,
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = calculateDigest(structHash);
+
+        // Generate a valid signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(uint160(deployer)), digest);
+
+        // Expect revert
+        vm.expectRevert(abi.encodeWithSelector(ERC20Permit.ERC2612ExpiredSignature.selector, deadline));
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+    }
+
+    function testPermitReplayAttack() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 nonce = token.nonces(deployer);
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Construct the digest
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                deployer,
+                spender,
+                allowanceAmount,
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = calculateDigest(structHash);
+
+        // Generate a valid signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(DEPLOYER_PRIVATE_KEY, digest);
+
+        // Call permit for the first time
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+
+        // Verify that nonce has incremented
+        assertEq(token.nonces(deployer), nonce + 1, "Nonce did not increment correctly");
+
+        // Attempt to reuse the same signature
+        vm.expectRevert(); // Expect any revert due to nonce mismatch
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+    }
+
+    function testPermitNonceIncrements() public {
+        uint256 allowanceAmount = 500 * 10 ** token.decimals();
+        uint256 nonce = token.nonces(deployer);
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Construct the digest
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                deployer,
+                spender,
+                allowanceAmount,
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = calculateDigest(structHash);
+
+        // Generate a valid signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(DEPLOYER_PRIVATE_KEY, digest);
+
+        // Call permit
+        token.permit(deployer, spender, allowanceAmount, deadline, v, r, s);
+
+        // Verify that nonce increments
+        assertEq(token.nonces(deployer), nonce + 1, "Nonce did not increment correctly");
     }
 }
