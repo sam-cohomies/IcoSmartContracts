@@ -11,6 +11,7 @@ import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draf
 import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
+/// @custom:security-contact sam@cohomies.io
 contract CHMTokenTest is Test {
     AccessManager private manager;
     CHMToken private token;

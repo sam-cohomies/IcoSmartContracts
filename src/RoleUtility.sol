@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {AccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol";
 import {console} from "lib/forge-std/src/Test.sol";
 
+/// @custom:security-contact sam@cohomies.io
 struct Role {
     // Base role - can do action
     uint64 roleId;
@@ -13,6 +14,7 @@ struct Role {
     uint64 adminRoleId;
 }
 
+/// @custom:security-contact sam@cohomies.io
 contract RoleUtility is AccessManaged {
     // Event to notify when a new role is added
     event RoleAdded(string roleName, Role role);

@@ -7,6 +7,7 @@ import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager
 import {CHMToken} from "../src/CHMToken.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
+/// @custom:security-contact sam@cohomies.io
 contract Deploy is Script {
     error InvalidAdminAddress(address admin);
 
