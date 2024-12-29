@@ -598,12 +598,8 @@ contract CHMTokenTest is Test {
         vm.prank(deployer);
         token.delegate(spender);
 
-        // Record the current block number
-        uint256 blockNumber = block.number;
+        // Record the current block timestamp
         uint256 blockTimestamp = block.timestamp;
-
-        // Ensure the block number is valid
-        vm.roll(blockNumber + 1);
 
         // Ensure the timestamp is valid
         vm.warp(block.timestamp + 1);
@@ -612,7 +608,25 @@ contract CHMTokenTest is Test {
         vm.prank(deployer);
         token.transfer(recipient, transferAmount);
 
-        // Check voting power at the recorded block
-        assertEq(token.getPastVotes(spender, blockNumber), balance, "Snapshot voting power mismatch");
+        // Check voting power at the recorded timestamp
+        assertEq(token.getPastVotes(spender, blockTimestamp), balance, "Snapshot voting power mismatch");
+    }
+
+    function testClockIntegrity() public {
+        // Check initial timestamp
+        uint256 initialTimestamp = block.timestamp;
+        assertEq(token.clock(), initialTimestamp, "Clock mismatch with block timestamp");
+
+        // Advance time
+        uint256 advancedTime = 1000;
+        vm.warp(block.timestamp + advancedTime);
+
+        // Verify clock reflects the updated timestamp
+        assertEq(token.clock(), block.timestamp, "Clock mismatch after time warp");
+    }
+
+    function testClockMode() public {
+        // Verify CLOCK_MODE outputs the correct string
+        assertEq(token.CLOCK_MODE(), "mode=timestamp", "CLOCK_MODE mismatch");
     }
 }
