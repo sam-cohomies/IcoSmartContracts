@@ -53,6 +53,11 @@ contract CHMTokenTest is Test {
 
         string[] memory roles = new string[](1);
         roles[0] = "CHM_TOKEN_PAUSER";
+
+        vm.expectEmit();
+        Role memory role = Role(1, 2, 3);
+        emit RoleUtility.RoleAdded(roles[0], role);
+
         roleUtility = new RoleUtility(address(manager), roles);
 
         bytes4[] memory pauserSelectors = new bytes4[](2);
