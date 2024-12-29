@@ -629,4 +629,51 @@ contract CHMTokenTest is Test {
         // Verify CLOCK_MODE outputs the correct string
         assertEq(token.CLOCK_MODE(), "mode=timestamp", "CLOCK_MODE mismatch");
     }
+
+    function testTransferFullBalance() public {
+        uint256 senderBalance = token.balanceOf(deployer);
+        address recipient = userNonPauser;
+
+        // Transfer entire balance
+        vm.prank(deployer);
+        token.transfer(recipient, senderBalance);
+
+        // Check balances
+        assertEq(token.balanceOf(deployer), 0, "Sender balance should be zero after transferring full balance");
+        assertEq(token.balanceOf(recipient), senderBalance, "Recipient balance should equal the transferred amount");
+    }
+
+    function testSetAllowanceToZero() public {
+        uint256 initialAllowance = 500 * 10 ** token.decimals();
+        address spender = userNonPauser;
+
+        // Approve spender
+        vm.prank(deployer);
+        token.approve(spender, initialAllowance);
+
+        // Set allowance to zero
+        vm.prank(deployer);
+        token.approve(spender, 0);
+
+        // Attempt to transfer
+        vm.prank(spender);
+        uint256 transferAmount = 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, transferAmount)
+        );
+        token.transferFrom(deployer, userPauserNoDelay, transferAmount);
+    }
+
+    function testTransferZeroTokens() public {
+        uint256 senderBalance = token.balanceOf(deployer);
+        uint256 recipientBalance = token.balanceOf(userNonPauser);
+
+        // Transfer zero tokens
+        vm.prank(deployer);
+        token.transfer(userNonPauser, 0);
+
+        // Check balances remain unchanged
+        assertEq(token.balanceOf(deployer), senderBalance, "Sender balance should remain unchanged");
+        assertEq(token.balanceOf(userNonPauser), recipientBalance, "Recipient balance should remain unchanged");
+    }
 }
