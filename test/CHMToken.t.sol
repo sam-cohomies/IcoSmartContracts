@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import {console, Test} from "lib/forge-std/src/Test.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
 import {CHMToken} from "../src/CHMToken.sol";
 import {ERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
@@ -625,14 +625,13 @@ contract CHMTokenTest is Test {
         assertEq(token.clock(), block.timestamp, "Clock mismatch after time warp");
     }
 
-    function testClockMode() public {
+    function testClockMode() public view {
         // Verify CLOCK_MODE outputs the correct string
         assertEq(token.CLOCK_MODE(), "mode=timestamp", "CLOCK_MODE mismatch");
     }
 
     function testTransferFullBalance() public {
         uint256 senderBalance = token.balanceOf(deployer);
-        address recipient = userNonPauser;
 
         // Transfer entire balance
         vm.prank(deployer);
@@ -645,7 +644,6 @@ contract CHMTokenTest is Test {
 
     function testSetAllowanceToZero() public {
         uint256 initialAllowance = 500 * 10 ** token.decimals();
-        address spender = userNonPauser;
 
         // Approve spender
         vm.prank(deployer);
