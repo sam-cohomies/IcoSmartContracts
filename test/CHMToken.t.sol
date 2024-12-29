@@ -101,12 +101,12 @@ contract CHMTokenTest is Test {
     function testInitialSupply() public view {
         // Verify the total supply matches the initial supply
         uint256 totalSupply = token.totalSupply();
-        assertEq(totalSupply, 2 * 10 ** (9 + 18), "Initial supply mismatch");
+        assertEq(totalSupply, 2 * 10 ** (9 + token.decimals()), "Initial supply mismatch");
     }
 
     function testTransferSuccess() public {
         // Transfer tokens and verify balances
-        uint256 transferAmount = 1_000 * 10 ** 18;
+        uint256 transferAmount = 1_000 * 10 ** token.decimals();
 
         // Fund deployer with tokens
         vm.prank(deployer);
@@ -117,21 +117,19 @@ contract CHMTokenTest is Test {
         uint256 deployerBalance = token.balanceOf(deployer);
 
         assertEq(userBalance, transferAmount, "User balance mismatch");
-        assertEq(deployerBalance, 2 * 10 ** (9 + 18) - transferAmount, "Deployer balance mismatch");
+        assertEq(deployerBalance, 2 * 10 ** (9 + token.decimals()) - transferAmount, "Deployer balance mismatch");
     }
 
     function testTransferInsufficientFunds() public {
         // Attempt to transfer more tokens than the sender has
-        uint256 transferAmount = 3 * 10 ** (9 + 18);
+        uint256 transferAmount = 1 * 10 ** token.decimals();
 
         // Attempt to transfer more tokens than the sender has
-        vm.prank(deployer);
+        vm.prank(userNonPauser);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IERC20Errors.ERC20InsufficientBalance.selector, deployer, 2 * 10 ** (9 + 18), transferAmount
-            )
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientBalance.selector, userNonPauser, 0, transferAmount)
         );
-        token.transfer(userNonPauser, transferAmount);
+        token.transfer(deployer, transferAmount);
     }
 
     function testApproveSetsAllowance() public {
@@ -196,7 +194,7 @@ contract CHMTokenTest is Test {
         // Attempt to transfer
         vm.prank(spender);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, 500 * 10 ** 18)
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, allowanceAmount)
         );
         token.transferFrom(deployer, recipient, allowanceAmount);
     }
@@ -230,7 +228,7 @@ contract CHMTokenTest is Test {
     }
 
     function testCannotTransferWhenPaused() public {
-        uint256 transferAmount = 1_000 * 10 ** 18;
+        uint256 transferAmount = 1_000 * 10 ** token.decimals();
 
         // Pause the contract
         vm.prank(deployer);
