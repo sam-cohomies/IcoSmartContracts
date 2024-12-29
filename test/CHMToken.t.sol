@@ -589,4 +589,30 @@ contract CHMTokenTest is Test {
         // Check voting power
         assertEq(token.getVotes(spender), token.balanceOf(deployer), "Voting power mismatch after transfer");
     }
+
+    function testSnapshotVotingPower() public {
+        uint256 balance = token.balanceOf(deployer);
+        uint256 transferAmount = 1000 * 10 ** token.decimals();
+
+        // Delegate to spender
+        vm.prank(deployer);
+        token.delegate(spender);
+
+        // Record the current block number
+        uint256 blockNumber = block.number;
+        uint256 blockTimestamp = block.timestamp;
+
+        // Ensure the block number is valid
+        vm.roll(blockNumber + 1);
+
+        // Ensure the timestamp is valid
+        vm.warp(block.timestamp + 1);
+
+        // Transfer tokens
+        vm.prank(deployer);
+        token.transfer(recipient, transferAmount);
+
+        // Check voting power at the recorded block
+        assertEq(token.getPastVotes(spender, blockNumber), balance, "Snapshot voting power mismatch");
+    }
 }
