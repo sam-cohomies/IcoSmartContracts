@@ -534,4 +534,61 @@ contract CHMTokenTest is Test {
         // Verify that nonce increments
         assertEq(token.nonces(deployer), nonce + 1, "Nonce did not increment correctly");
     }
+
+    function testDelegateVotingPower() public {
+        uint256 balance = token.balanceOf(deployer);
+
+        // Delegate voting power from deployer to spender
+        vm.prank(deployer);
+        token.delegate(spender);
+
+        // Check voting power
+        assertEq(token.getVotes(spender), balance, "Voting power mismatch");
+        assertEq(token.getVotes(deployer), 0, "Voting power should be zero");
+    }
+
+    function testRevokeDelegation() public {
+        uint256 balance = token.balanceOf(deployer);
+
+        // Delegate and then revoke
+        vm.prank(deployer);
+        token.delegate(spender);
+        vm.prank(deployer);
+        token.delegate(deployer);
+
+        // Check voting power
+        assertEq(token.getVotes(deployer), balance, "Voting power mismatch after revoking");
+        assertEq(token.getVotes(spender), 0, "Voting power should be zero after revoking");
+    }
+
+    function testChangeDelegation() public {
+        uint256 balance = token.balanceOf(deployer);
+
+        // Delegate to spender
+        vm.prank(deployer);
+        token.delegate(spender);
+
+        // Change delegation to recipient
+        vm.prank(deployer);
+        token.delegate(recipient);
+
+        // Check voting power
+        assertEq(token.getVotes(spender), 0, "Voting power should be zero after delegation change");
+        assertEq(token.getVotes(recipient), balance, "Voting power mismatch for new delegatee");
+    }
+
+    function testVotingPowerReflectsTransfers() public {
+        uint256 transferAmount = 1_000 * 10 ** token.decimals();
+
+        // Delegate to spender
+        vm.prank(deployer);
+        token.delegate(spender);
+
+        // Transfer tokens
+        vm.prank(deployer);
+        token.transfer(recipient, transferAmount);
+
+        // Check voting power
+        assertEq(token.getVotes(spender), token.balanceOf(deployer), "Voting power mismatch after transfer");
+    }
 }
