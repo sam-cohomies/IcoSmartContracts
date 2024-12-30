@@ -11,12 +11,49 @@ import {Nonces} from "lib/openzeppelin-contracts/contracts/utils/Nonces.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract CHMToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
-    constructor(address _accessControlManager, address escrowInitial)
+    enum AllocationType {
+        PRESALE,
+        MARKETING,
+        EXCHANGE,
+        TEAM,
+        ADVISORS
+    }
+
+    uint256[5] private _allocations;
+
+    address[5] private _allocationAddresses;
+
+    error ZeroAddressNotAllowed();
+
+    constructor(address _accessControlManager, address[5] memory allocationAddresses)
         ERC20("CoHomies", "CHM")
         AccessManaged(_accessControlManager)
         ERC20Permit("CoHomies")
     {
-        _mint(escrowInitial, 2 * (10 ** (9 + decimals())));
+        for (uint256 i = 0; i < allocationAddresses.length; i++) {
+            if (allocationAddresses[i] == address(0)) {
+                revert ZeroAddressNotAllowed();
+            }
+        }
+        _allocations = [
+            1e9, // PRESALE
+            4e8, // MARKETING
+            3e8, // EXCHANGE
+            2e8, // TEAM
+            1e8 // ADVISORS
+        ];
+        _allocationAddresses = allocationAddresses;
+        for (uint256 i = 0; i < _allocations.length; i++) {
+            _mint(allocationAddresses[i], _allocations[i] * 10 ** decimals());
+        }
+    }
+
+    function getAllocations() public view returns (uint256[5] memory) {
+        return _allocations;
+    }
+
+    function remainingAllocation(AllocationType allocationType) public view returns (uint256) {
+        return balanceOf(_allocationAddresses[uint256(allocationType)]);
     }
 
     function pause() public restricted {

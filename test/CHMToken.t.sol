@@ -25,6 +25,11 @@ contract CHMTokenTest is Test {
     uint256 private constant PAUSER_ADMIN_PRIVATE_KEY = 6;
     uint256 private constant SPENDER_PRIVATE_KEY = 7;
     uint256 private constant RECIPIENT_PRIVATE_KEY = 8;
+    uint256 private constant PRESALE_PRIVATE_KEY = 9;
+    uint256 private constant MARKETING_PRIVATE_KEY = 10;
+    uint256 private constant EXCHANGE_PRIVATE_KEY = 11;
+    uint256 private constant TEAM_PRIVATE_KEY = 12;
+    uint256 private constant ADVISORS_PRIVATE_KEY = 13;
     address private deployer;
     address private userNonPauser;
     address private userPauserNoDelay;
@@ -33,6 +38,11 @@ contract CHMTokenTest is Test {
     address private pauserAdmin;
     address private spender;
     address private recipient;
+    address private presale;
+    address private marketing;
+    address private exchange;
+    address private team;
+    address private advisors;
 
     uint32 private constant DELAY = 100;
 
@@ -46,11 +56,16 @@ contract CHMTokenTest is Test {
         pauserAdmin = vm.addr(PAUSER_ADMIN_PRIVATE_KEY);
         spender = vm.addr(SPENDER_PRIVATE_KEY);
         recipient = vm.addr(RECIPIENT_PRIVATE_KEY);
+        presale = vm.addr(PRESALE_PRIVATE_KEY);
+        marketing = vm.addr(MARKETING_PRIVATE_KEY);
+        exchange = vm.addr(EXCHANGE_PRIVATE_KEY);
+        team = vm.addr(TEAM_PRIVATE_KEY);
+        advisors = vm.addr(ADVISORS_PRIVATE_KEY);
 
         // Deploy the token contract
         vm.startPrank(deployer);
         manager = new AccessManager(deployer);
-        token = new CHMToken(address(manager), deployer);
+        token = new CHMToken(address(manager), [presale, marketing, exchange, team, advisors]);
 
         string[] memory roles = new string[](1);
         roles[0] = "CHM_TOKEN_PAUSER";
@@ -105,25 +120,38 @@ contract CHMTokenTest is Test {
     }
 
     function testInitialSupply() public view {
-        // Verify the total supply matches the initial supply
+        // Verify that each allocation has the correct balance
+        uint256[5] memory allocations = token.getAllocations();
+        uint256 totalBalance = 0;
+
+        for (uint256 i = 0; i < allocations.length; i++) {
+            uint256 balance = token.remainingAllocation(CHMToken.AllocationType(i));
+            assertEq(balance, allocations[i] * 10 ** token.decimals(), "Initial allocation balance mismatch");
+            totalBalance += balance;
+        }
+
         uint256 totalSupply = token.totalSupply();
-        assertEq(totalSupply, 2 * 10 ** (9 + token.decimals()), "Initial supply mismatch");
+        assertEq(totalSupply, totalBalance, "Initial supply mismatch");
     }
 
     function testTransferSuccess() public {
         // Transfer tokens and verify balances
         uint256 transferAmount = 1_000 * 10 ** token.decimals();
 
-        // Fund deployer with tokens
-        vm.prank(deployer);
+        // Transfer from presale to userNonPauser
+        vm.prank(presale);
         token.transfer(userNonPauser, transferAmount);
 
         // Check balances
         uint256 userBalance = token.balanceOf(userNonPauser);
-        uint256 deployerBalance = token.balanceOf(deployer);
+        uint256 presaleBalance = token.balanceOf(presale);
 
         assertEq(userBalance, transferAmount, "User balance mismatch");
-        assertEq(deployerBalance, 2 * 10 ** (9 + token.decimals()) - transferAmount, "Deployer balance mismatch");
+        assertEq(
+            presaleBalance,
+            token.getAllocations()[0] * 10 ** token.decimals() - transferAmount,
+            "Presale balance mismatch"
+        );
     }
 
     function testTransferInsufficientFunds() public {
@@ -154,18 +182,18 @@ contract CHMTokenTest is Test {
         uint256 transferAmount = 200 * 10 ** token.decimals();
 
         // Approve spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, allowanceAmount);
 
-        // Transfer tokens on behalf of deployer
+        // Transfer tokens on behalf of presale
         vm.prank(spender);
-        token.transferFrom(deployer, recipient, transferAmount);
+        token.transferFrom(presale, recipient, transferAmount);
 
         // Check recipient balance
         assertEq(token.balanceOf(recipient), transferAmount);
 
         // Check allowance is reduced
-        assertEq(token.allowance(deployer, spender), allowanceAmount - transferAmount);
+        assertEq(token.allowance(presale, spender), allowanceAmount - transferAmount);
     }
 
     function testTransferFromFailsForInsufficientAllowance() public {
@@ -173,7 +201,7 @@ contract CHMTokenTest is Test {
         uint256 transferAmount = 600 * 10 ** token.decimals();
 
         // Approve spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, allowanceAmount);
 
         // Attempt to transfer more than allowed
@@ -183,18 +211,18 @@ contract CHMTokenTest is Test {
                 IERC20Errors.ERC20InsufficientAllowance.selector, spender, allowanceAmount, transferAmount
             )
         );
-        token.transferFrom(deployer, recipient, transferAmount);
+        token.transferFrom(presale, recipient, transferAmount);
     }
 
     function testRevokeAllowance() public {
         uint256 allowanceAmount = 500 * 10 ** token.decimals();
 
         // Approve spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, allowanceAmount);
 
         // Revoke allowance
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, 0);
 
         // Attempt to transfer
@@ -202,7 +230,7 @@ contract CHMTokenTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, allowanceAmount)
         );
-        token.transferFrom(deployer, recipient, allowanceAmount);
+        token.transferFrom(presale, recipient, allowanceAmount);
     }
 
     function testTransferFromFailsWithNoAllowance() public {
@@ -213,7 +241,7 @@ contract CHMTokenTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, transferAmount)
         );
-        token.transferFrom(deployer, recipient, transferAmount);
+        token.transferFrom(presale, recipient, transferAmount);
     }
 
     function testPauseAndUnpause() public {
@@ -241,7 +269,7 @@ contract CHMTokenTest is Test {
         token.pause();
 
         // Attempt to transfer while paused
-        vm.prank(deployer);
+        vm.prank(presale);
         vm.expectRevert(Pausable.EnforcedPause.selector);
         token.transfer(userNonPauser, transferAmount);
     }
@@ -255,7 +283,7 @@ contract CHMTokenTest is Test {
 
     function testUnauthorizedUnpauseReverts() public {
         // First, pause the contract using an authorized user
-        vm.prank(deployer); // Assuming deployer has PAUSER_ROLE
+        vm.prank(deployer);
         token.pause();
 
         // Attempt to call `unpause` as an unauthorized user
@@ -540,40 +568,40 @@ contract CHMTokenTest is Test {
     }
 
     function testDelegateVotingPower() public {
-        uint256 balance = token.balanceOf(deployer);
+        uint256 balance = token.balanceOf(presale);
 
-        // Delegate voting power from deployer to spender
-        vm.prank(deployer);
+        // Delegate voting power from presale to spender
+        vm.prank(presale);
         token.delegate(spender);
 
         // Check voting power
         assertEq(token.getVotes(spender), balance, "Voting power mismatch");
-        assertEq(token.getVotes(deployer), 0, "Voting power should be zero");
+        assertEq(token.getVotes(presale), 0, "Voting power should be zero");
     }
 
     function testRevokeDelegation() public {
-        uint256 balance = token.balanceOf(deployer);
+        uint256 balance = token.balanceOf(presale);
 
         // Delegate and then revoke
-        vm.prank(deployer);
+        vm.prank(presale);
         token.delegate(spender);
-        vm.prank(deployer);
-        token.delegate(deployer);
+        vm.prank(presale);
+        token.delegate(presale);
 
         // Check voting power
-        assertEq(token.getVotes(deployer), balance, "Voting power mismatch after revoking");
+        assertEq(token.getVotes(presale), balance, "Voting power mismatch after revoking");
         assertEq(token.getVotes(spender), 0, "Voting power should be zero after revoking");
     }
 
     function testChangeDelegation() public {
-        uint256 balance = token.balanceOf(deployer);
+        uint256 balance = token.balanceOf(presale);
 
         // Delegate to spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.delegate(spender);
 
         // Change delegation to recipient
-        vm.prank(deployer);
+        vm.prank(presale);
         token.delegate(recipient);
 
         // Check voting power
@@ -585,23 +613,23 @@ contract CHMTokenTest is Test {
         uint256 transferAmount = 1_000 * 10 ** token.decimals();
 
         // Delegate to spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.delegate(spender);
 
         // Transfer tokens
-        vm.prank(deployer);
+        vm.prank(presale);
         token.transfer(recipient, transferAmount);
 
         // Check voting power
-        assertEq(token.getVotes(spender), token.balanceOf(deployer), "Voting power mismatch after transfer");
+        assertEq(token.getVotes(spender), token.balanceOf(presale), "Voting power mismatch after transfer");
     }
 
     function testSnapshotVotingPower() public {
-        uint256 balance = token.balanceOf(deployer);
+        uint256 balance = token.balanceOf(presale);
         uint256 transferAmount = 1000 * 10 ** token.decimals();
 
         // Delegate to spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.delegate(spender);
 
         // Record the current block timestamp
@@ -611,7 +639,7 @@ contract CHMTokenTest is Test {
         vm.warp(block.timestamp + 1);
 
         // Transfer tokens
-        vm.prank(deployer);
+        vm.prank(presale);
         token.transfer(recipient, transferAmount);
 
         // Check voting power at the recorded timestamp
@@ -637,14 +665,14 @@ contract CHMTokenTest is Test {
     }
 
     function testTransferFullBalance() public {
-        uint256 senderBalance = token.balanceOf(deployer);
+        uint256 senderBalance = token.balanceOf(presale);
 
         // Transfer entire balance
-        vm.prank(deployer);
+        vm.prank(presale);
         token.transfer(recipient, senderBalance);
 
         // Check balances
-        assertEq(token.balanceOf(deployer), 0, "Sender balance should be zero after transferring full balance");
+        assertEq(token.balanceOf(presale), 0, "Sender balance should be zero after transferring full balance");
         assertEq(token.balanceOf(recipient), senderBalance, "Recipient balance should equal the transferred amount");
     }
 
@@ -652,11 +680,11 @@ contract CHMTokenTest is Test {
         uint256 initialAllowance = 500 * 10 ** token.decimals();
 
         // Approve spender
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, initialAllowance);
 
         // Set allowance to zero
-        vm.prank(deployer);
+        vm.prank(presale);
         token.approve(spender, 0);
 
         // Attempt to transfer
@@ -665,19 +693,19 @@ contract CHMTokenTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, spender, 0, transferAmount)
         );
-        token.transferFrom(deployer, userPauserNoDelay, transferAmount);
+        token.transferFrom(presale, userPauserNoDelay, transferAmount);
     }
 
     function testTransferZeroTokens() public {
-        uint256 senderBalance = token.balanceOf(deployer);
+        uint256 senderBalance = token.balanceOf(presale);
         uint256 recipientBalance = token.balanceOf(userNonPauser);
 
         // Transfer zero tokens
-        vm.prank(deployer);
+        vm.prank(presale);
         token.transfer(userNonPauser, 0);
 
         // Check balances remain unchanged
-        assertEq(token.balanceOf(deployer), senderBalance, "Sender balance should remain unchanged");
+        assertEq(token.balanceOf(presale), senderBalance, "Sender balance should remain unchanged");
         assertEq(token.balanceOf(userNonPauser), recipientBalance, "Recipient balance should remain unchanged");
     }
 }

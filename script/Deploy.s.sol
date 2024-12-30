@@ -9,17 +9,44 @@ import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract Deploy is Script {
-    error InvalidAdminAddress(address admin);
+    error ZeroAddressNotAllowed();
 
     function run() public {
-        // Load the admin address from the environment variable
+        // Load and validate addresses from environment variables
         string memory adminEnvVar = vm.envString("ADMIN_MULTISIG");
         address admin = vm.parseAddress(adminEnvVar);
-        string memory escrowInitialEnvVar = vm.envString("ESCROW_INITIAL_MULTISIG");
-        address escrowInitial = vm.parseAddress(escrowInitialEnvVar);
-
         if (admin == address(0)) {
-            revert InvalidAdminAddress(admin);
+            revert ZeroAddressNotAllowed();
+        }
+
+        string memory presaleEnvVar = vm.envString("PRESALE_MULTISIG");
+        address presale = vm.parseAddress(presaleEnvVar);
+        if (presale == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
+
+        string memory marketingEnvVar = vm.envString("MARKETING_MULTISIG");
+        address marketing = vm.parseAddress(marketingEnvVar);
+        if (marketing == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
+
+        string memory exchangeEnvVar = vm.envString("EXCHANGE_MULTISIG");
+        address exchange = vm.parseAddress(exchangeEnvVar);
+        if (exchange == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
+
+        string memory teamEnvVar = vm.envString("TEAM_MULTISIG");
+        address team = vm.parseAddress(teamEnvVar);
+        if (team == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
+
+        string memory advisorsEnvVar = vm.envString("ADVISORS_MULTISIG");
+        address advisors = vm.parseAddress(advisorsEnvVar);
+        if (advisors == address(0)) {
+            revert ZeroAddressNotAllowed();
         }
 
         // Start broadcasting the transaction from the caller's address
@@ -41,7 +68,7 @@ contract Deploy is Script {
         RoleUtility roleUtility = new RoleUtility(address(manager), roles);
 
         // Deploy CHMToken
-        CHMToken chm = new CHMToken(address(manager), address(escrowInitial));
+        CHMToken chm = new CHMToken(address(manager), [presale, marketing, exchange, team, advisors]);
 
         // Deploy ICO
         // TODO: develop ICO contract
