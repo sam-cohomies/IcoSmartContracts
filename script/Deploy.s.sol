@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 
 import {Script} from "lib/forge-std/src/Script.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
-import {CHMToken} from "../src/CHMToken.sol";
+import {ChmToken} from "../src/ChmToken.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
 /// @custom:security-contact sam@cohomies.io
@@ -67,8 +67,8 @@ contract Deploy is Script {
         // Deploy RoleUtility
         RoleUtility roleUtility = new RoleUtility(address(manager), roles);
 
-        // Deploy CHMToken
-        CHMToken chm = new CHMToken(address(manager), [presale, marketing, exchange, team, advisors]);
+        // Deploy ChmToken
+        ChmToken chm = new ChmToken(address(manager), [presale, marketing, exchange, team, advisors]);
 
         // Deploy ICO
         // TODO: develop ICO contract

@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Test} from "lib/forge-std/src/Test.sol";
 import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
-import {CHMToken} from "../src/CHMToken.sol";
+import {ChmToken} from "../src/ChmToken.sol";
 import {ERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IAccessManaged} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManaged.sol";
 import {IAccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol";
@@ -12,9 +12,9 @@ import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol"
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
 /// @custom:security-contact sam@cohomies.io
-contract CHMTokenTest is Test {
+contract ChmTokenTest is Test {
     AccessManager private manager;
-    CHMToken private token;
+    ChmToken private token;
     RoleUtility private roleUtility;
 
     uint256 private constant DEPLOYER_PRIVATE_KEY = 1;
@@ -65,7 +65,7 @@ contract CHMTokenTest is Test {
         // Deploy the token contract
         vm.startPrank(deployer);
         manager = new AccessManager(deployer);
-        token = new CHMToken(address(manager), [presale, marketing, exchange, team, advisors]);
+        token = new ChmToken(address(manager), [presale, marketing, exchange, team, advisors]);
 
         string[] memory roles = new string[](1);
         roles[0] = "CHM_TOKEN_PAUSER";
@@ -125,7 +125,7 @@ contract CHMTokenTest is Test {
         uint256 totalBalance = 0;
 
         for (uint256 i = 0; i < allocations.length; i++) {
-            uint256 balance = token.remainingAllocation(CHMToken.AllocationType(i));
+            uint256 balance = token.remainingAllocation(ChmToken.AllocationType(i));
             assertEq(balance, allocations[i] * 10 ** token.decimals(), "Initial allocation balance mismatch");
             totalBalance += balance;
         }
