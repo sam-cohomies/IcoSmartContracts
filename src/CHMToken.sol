@@ -10,7 +10,7 @@ import {ERC20Votes} from "lib/openzeppelin-contracts/contracts/token/ERC20/exten
 import {Nonces} from "lib/openzeppelin-contracts/contracts/utils/Nonces.sol";
 
 /// @custom:security-contact sam@cohomies.io
-contract CHMToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
+contract ChmToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
     enum AllocationType {
         PRESALE,
         MARKETING,
