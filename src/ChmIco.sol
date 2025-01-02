@@ -222,6 +222,8 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
             usersData[i] = userData[users[i]];
         }
         VESTING_CONTRACT.beginVesting(users, usersData, chmSold);
+        // TODO: Start vesting for team
+        // TODO: Start vesting for advisors
         // Transfer all raised funds to treasury
         uint256 etherBalance = address(this).balance;
         if (etherBalance > 0) {
