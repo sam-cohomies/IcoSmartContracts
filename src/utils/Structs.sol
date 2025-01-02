@@ -17,6 +17,12 @@ struct Stage {
     uint256 startTime; // Start time of the stage using solidity default encoding
 }
 
+struct TeamMember {
+    address member; // Address of the team member
+    uint128 id; // ID of the team member
+    uint128 shares; // Number of shares owned by the team member
+}
+
 struct User {
     uint256 usdtSpent; // Total USDT measured in microUSDT spent by the user (6 decimals)
     uint256 usdcSpent; // Total USDC measured in microUSDC spent by the user (6 decimals)
