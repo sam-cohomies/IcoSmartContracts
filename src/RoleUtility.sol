@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-import {console} from "@forge-std/src/Test.sol";
 
 /// @custom:security-contact sam@cohomies.io
 struct Role {
