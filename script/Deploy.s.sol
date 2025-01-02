@@ -2,8 +2,8 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.27;
 
-import {Script} from "lib/forge-std/src/Script.sol";
-import {AccessManager} from "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
+import {Script} from "@forge-std/src/Script.sol";
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 import {ChmToken} from "../src/ChmToken.sol";
 import {Role, RoleUtility} from "../src/RoleUtility.sol";
 
