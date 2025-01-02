@@ -20,6 +20,9 @@ contract ChmTeamVesting is AccessManaged, ReentrancyGuard {
 
     address private chmTokenAddress;
 
+    uint64 private constant DELAY = 3 * 365 days;
+    uint64 private constant DURATION = 0;
+
     constructor(address _accessControlManager, TeamMember[] memory _teamMembers) AccessManaged(_accessControlManager) {
         for (uint256 i = 0; i < _teamMembers.length; i++) {
             teamMembers.push(_teamMembers[i]);
@@ -41,7 +44,7 @@ contract ChmTeamVesting is AccessManaged, ReentrancyGuard {
         address maxSharesAddress;
         for (uint256 i = 0; i < teamMembers.length; i++) {
             VestingWallet vestingWallet =
-                new VestingWallet(teamMembers[i].member, uint64(block.timestamp + 3 * 365 days), 0);
+                new VestingWallet(teamMembers[i].member, uint64(block.timestamp + DELAY), DURATION);
             address vestingWalletAddress = address(vestingWallet);
             chmToken.safeTransfer(vestingWalletAddress, chmBalance * teamMembers[i].shares / totalShares);
             vestingWallet.transferOwnership(teamMembers[i].member);
