@@ -41,7 +41,7 @@ contract ChmTeamVesting is AccessManaged, ReentrancyGuard {
         address maxSharesAddress;
         for (uint256 i = 0; i < teamMembers.length; i++) {
             VestingWallet vestingWallet =
-                new VestingWallet(teamMembers[i].member, uint64(block.timestamp), uint64(3 * 365 days));
+                new VestingWallet(teamMembers[i].member, uint64(block.timestamp + 3 * 365 days), 0);
             address vestingWalletAddress = address(vestingWallet);
             chmToken.safeTransfer(vestingWalletAddress, chmBalance * teamMembers[i].shares / totalShares);
             vestingWallet.transferOwnership(teamMembers[i].member);
