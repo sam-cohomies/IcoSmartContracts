@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+struct TokensVested {
+    uint128 released;
+    uint128 total;
+}
+
 struct Role {
     // Base role - can do action
     uint64 roleId;
