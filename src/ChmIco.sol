@@ -68,6 +68,7 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
 
     uint256 public constant MINIMUM_RAISE = 1_000_000; // 1 million USDT
     uint256 private raisedAmount; // Total amount raised in microUSDT (6 decimals)
+    uint256 private chmSold; // Total CHM sold (no decimals)
 
     address public constant CHAINLINK_USDT_ETH_FEED = 0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46;
     AggregatorV3Interface private usdtEthPriceFeed;
@@ -179,6 +180,7 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         userData[msg.sender].chmOwed += expectedTokens;
         currentStage.tokensAvailable -= expectedTokens;
         raisedAmount += expectedTokens * currentStage.price;
+        chmSold += expectedTokens;
 
         if (currentStage.tokensAvailable == 0 || block.timestamp >= currentStage.startTime + currentStage.duration) {
             _progressStage();
@@ -226,7 +228,7 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         for (uint256 i = 0; i < usersLength; i++) {
             usersData[i] = userData[users[i]];
         }
-        VESTING_CONTRACT.beginVesting(users, usersData);
+        VESTING_CONTRACT.beginVesting(users, usersData, chmSold);
         // Transfer all raised funds to treasury
         uint256 etherBalance = address(this).balance;
         if (etherBalance > 0) {
