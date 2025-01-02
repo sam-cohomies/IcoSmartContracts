@@ -21,6 +21,7 @@ contract ChmPublicVesting is AccessManaged {
         }
         chmSold = _chmSold;
         // TODO: Implement vesting logic
+        // TODO: Work out what to do with unsold tokens
         emit VestingBegun(_addresses, _users);
     }
 }
