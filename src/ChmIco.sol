@@ -9,9 +9,10 @@ import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/utils/Reentr
 contract ChmIco is AccessManaged, ReentrancyGuard {
     error ZeroAddressNotAllowed();
     error InvalidState();
+    error InsufficientPayment();
+    error UnsupportedCurrency();
 
     enum IcoState {
-        NotStarted,
         Stage1,
         Stage2,
         Stage3,
@@ -23,12 +24,20 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         Stage9,
         Stage10,
         Stage11,
+        NotStarted,
         Succeeded,
         Failed
     }
 
+    enum Currency {
+        USDT,
+        USDC,
+        ETH
+    }
+
     struct Stage {
         uint256 tokensAvailable; // Total tokens available for sale (no decimals)
+        uint256 tokensSold; // Total tokens sold (no decimals)
         uint256 price; // Price of one token in microUSDT (6 decimals)
         uint256 duration; // Duration of the stage using solidity default encoding
     }
@@ -52,25 +61,39 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
     constructor(address _accessControlManager) AccessManaged(_accessControlManager) {
         // TODO: Decide how long stages should last
         // TODO: Do some modelling to decide on stage details
-        stages.push(Stage(25_000_000, 3_500, 1 days));
-        stages.push(Stage(35_000_000, 3_900, 1 days));
-        stages.push(Stage(50_000_000, 4_400, 1 days));
-        stages.push(Stage(65_000_000, 4_900, 1 days));
-        stages.push(Stage(80_000_000, 5_500, 1 days));
-        stages.push(Stage(95_000_000, 6_200, 1 days));
-        stages.push(Stage(110_000_000, 6_900, 1 days));
-        stages.push(Stage(115_000_000, 7_700, 1 days));
-        stages.push(Stage(130_000_000, 8_500, 1 days));
-        stages.push(Stage(145_000_000, 9_400, 1 days));
-        stages.push(Stage(150_000_000, 10_400, 1 days));
+        stages.push(Stage(25_000_000, 0, 3_500, 1 days));
+        stages.push(Stage(35_000_000, 0, 3_900, 1 days));
+        stages.push(Stage(50_000_000, 0, 4_400, 1 days));
+        stages.push(Stage(65_000_000, 0, 4_900, 1 days));
+        stages.push(Stage(80_000_000, 0, 5_500, 1 days));
+        stages.push(Stage(95_000_000, 0, 6_200, 1 days));
+        stages.push(Stage(110_000_000, 0, 6_900, 1 days));
+        stages.push(Stage(115_000_000, 0, 7_700, 1 days));
+        stages.push(Stage(130_000_000, 0, 8_500, 1 days));
+        stages.push(Stage(145_000_000, 0, 9_400, 1 days));
+        stages.push(Stage(150_000_000, 0, 10_400, 1 days));
     }
 
-    function purchaseTokens(IcoState expectedState, uint256 expectedTokens) external nonReentrant {
+    function purchaseTokens(Currency currency, uint256 amount, IcoState expectedState, uint256 expectedTokens)
+        external
+        nonReentrant
+    {
         if (icoState != expectedState) {
             revert InvalidState();
         }
         // Additional purchase logic
-        uint256 tokensToAllocate = 0; // TODO: Implement purchase logic
+        Stage storage currentStage = stages[uint256(icoState)];
+        uint256 cost;
+        if (currency == Currency.USDT) {
+            cost = amount * currentStage.price;
+        } else if (currency == Currency.USDC) {
+            cost = amount * currentStage.price * 1e12;
+        } else if (currency == Currency.ETH) {
+            cost = amount;
+        } else {
+            revert UnsupportedCurrency();
+        }
+        uint256 tokensToAllocate = cost / currentStage.price;
         if (tokensToAllocate != expectedTokens) {
             revert InvalidState();
         }
