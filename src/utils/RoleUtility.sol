@@ -2,16 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-
-/// @custom:security-contact sam@cohomies.io
-struct Role {
-    // Base role - can do action
-    uint64 roleId;
-    // Guardian role - can cancel action
-    uint64 guardianRoleId;
-    // Admin role - can cancel action, grant / revoke roles
-    uint64 adminRoleId;
-}
+import {Role} from "./Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract RoleUtility is AccessManaged {

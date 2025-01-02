@@ -8,7 +8,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/v0.8/shared/interfaces
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ChmPublicVesting} from "./ChmPublicVesting.sol";
-import {User} from "./utils/Structs.sol";
+import {Stage, User} from "./utils/Structs.sol";
 
 using SafeERC20 for IERC20;
 
@@ -50,13 +50,6 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         USDT,
         USDC,
         ETH
-    }
-
-    struct Stage {
-        uint256 tokensAvailable; // Total tokens currently available for sale (no decimals)
-        uint256 price; // Price of one token in microUSDT (6 decimals)
-        uint256 duration; // Duration of the stage using solidity default encoding
-        uint256 startTime; // Start time of the stage using solidity default encoding
     }
 
     Stage[] private stages;

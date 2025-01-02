@@ -5,7 +5,7 @@ pragma solidity ^0.8.27;
 import {Script} from "@forge-std/Script.sol";
 import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 import {ChmToken} from "../src/ChmToken.sol";
-import {Role, RoleUtility} from "../src/RoleUtility.sol";
+import {Role, RoleUtility} from "../src/utils/RoleUtility.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract Deploy is Script {

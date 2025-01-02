@@ -9,7 +9,7 @@ import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessMana
 import {IAccessManager} from "@openzeppelin/contracts/access/manager/IAccessManager.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {Role, RoleUtility} from "../src/RoleUtility.sol";
+import {Role, RoleUtility} from "../src/utils/RoleUtility.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmTokenTest is Test {
