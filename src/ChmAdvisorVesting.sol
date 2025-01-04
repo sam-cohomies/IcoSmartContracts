@@ -15,6 +15,7 @@ contract ChmAdvisorVesting is AccessManaged, ReentrancyGuard {
     error NothingToRelease();
     error ChmAddressNotSet();
     error VestingAlreadyBegun(uint256 start);
+    error VestingNotBegun();
 
     event VestingBegun();
     event Released();
@@ -74,6 +75,9 @@ contract ChmAdvisorVesting is AccessManaged, ReentrancyGuard {
     }
 
     function release() external nonReentrant {
+        if (start == 0) {
+            revert VestingNotBegun();
+        }
         uint128 amount = _vestingSchedule(msg.sender) - advisorVesting[msg.sender].released;
         if (amount == 0) {
             revert NothingToRelease();
@@ -83,12 +87,12 @@ contract ChmAdvisorVesting is AccessManaged, ReentrancyGuard {
         emit Released();
     }
 
-    function released(address advisor) external view returns (uint256) {
-        return advisorVesting[advisor].released;
+    function released() external view returns (uint256) {
+        return advisorVesting[msg.sender].released;
     }
 
-    function totalAmount(address advisor) external view returns (uint256) {
-        return advisorVesting[advisor].total;
+    function totalAmount() external view returns (uint256) {
+        return advisorVesting[msg.sender].total;
     }
 
     function vestedAmount(address advisor) external view returns (uint256) {
