@@ -39,7 +39,8 @@
         "EditorConfig.EditorConfig",
         "oderwat.indent-rainbow",
         "trailofbits.slither-vscode",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "ryanluker.vscode-coverage-gutters"
       ]
     }
   },

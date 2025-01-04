@@ -708,4 +708,34 @@ contract ChmTokenTest is Test {
         assertEq(token.balanceOf(presale), senderBalance, "Sender balance should remain unchanged");
         assertEq(token.balanceOf(userNonPauser), recipientBalance, "Recipient balance should remain unchanged");
     }
+
+    function testAllocatePresaleToZeroAddress() public {
+        // Attempt to deploy the token contract with a zero address
+        vm.expectRevert(ChmToken.ZeroAddressNotAllowed.selector);
+        new ChmToken(address(manager), [address(0), marketing, exchange, team, advisors]);
+    }
+
+    function testAllocateMarketingToZeroAddress() public {
+        // Attempt to deploy the token contract with a zero address
+        vm.expectRevert(ChmToken.ZeroAddressNotAllowed.selector);
+        new ChmToken(address(manager), [presale, address(0), exchange, team, advisors]);
+    }
+
+    function testAllocateExchangeToZeroAddress() public {
+        // Attempt to deploy the token contract with a zero address
+        vm.expectRevert(ChmToken.ZeroAddressNotAllowed.selector);
+        new ChmToken(address(manager), [presale, marketing, address(0), team, advisors]);
+    }
+
+    function testAllocateTeamToZeroAddress() public {
+        // Attempt to deploy the token contract with a zero address
+        vm.expectRevert(ChmToken.ZeroAddressNotAllowed.selector);
+        new ChmToken(address(manager), [presale, marketing, exchange, address(0), advisors]);
+    }
+
+    function testAllocateAdvisorsToZeroAddress() public {
+        // Attempt to deploy the token contract with a zero address
+        vm.expectRevert(ChmToken.ZeroAddressNotAllowed.selector);
+        new ChmToken(address(manager), [presale, marketing, exchange, team, address(0)]);
+    }
 }
