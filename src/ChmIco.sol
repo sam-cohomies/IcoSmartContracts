@@ -217,11 +217,11 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         icoState = IcoState.Succeeded;
         // Inform vesting contract
         uint256 usersLength = users.length;
-        User[] memory usersData = new User[](usersLength);
+        uint128[] memory chmOwed = new uint128[](usersLength);
         for (uint256 i = 0; i < usersLength; i++) {
-            usersData[i] = userData[users[i]];
+            chmOwed[i] = uint128(userData[users[i]].chmOwed);
         }
-        VESTING_CONTRACT.beginVesting(users, usersData, chmSold);
+        VESTING_CONTRACT.beginVesting(users, chmOwed, chmSold);
         // TODO: Start vesting for team
         // TODO: Start vesting for advisors
         // Transfer all raised funds to treasury
