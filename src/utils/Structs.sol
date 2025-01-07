@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-struct TokensVested {
-    uint128 released;
-    uint128 total;
-}
-
 struct Role {
     // Base role - can do action
     uint64 roleId;
@@ -26,6 +21,11 @@ struct TeamMember {
     address member; // Address of the team member
     uint128 id; // ID of the team member
     uint128 shares; // Number of shares owned by the team member
+}
+
+struct TokensVested {
+    uint128 released;
+    uint128 total;
 }
 
 struct User {
