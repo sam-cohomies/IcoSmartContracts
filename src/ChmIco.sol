@@ -346,6 +346,7 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
             emit RefundFailed(buyer, amount, Currency.ETH);
             return amount;
         }
+        return 0;
     }
 
     function getIcoState() external view returns (IcoState) {
