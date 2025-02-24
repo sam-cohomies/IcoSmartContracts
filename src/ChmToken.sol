@@ -8,9 +8,10 @@ import {ERC20Pausable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /// @custom:security-contact sam@cohomies.io
-contract ChmToken is ERC20, ERC20Pausable, AccessManaged, ERC20Permit, ERC20Votes {
+contract ChmToken is ERC20, ERC20Pausable, ERC20Burnable, AccessManaged, ERC20Permit, ERC20Votes {
     enum AllocationType {
         PRESALE,
         MARKETING,
