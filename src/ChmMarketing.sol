@@ -11,7 +11,5 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 using SafeERC20 for IERC20;
 
 contract ChmAdvisorVesting is ChmSharesVesting {
-    constructor(address _accessControlManager)
-        ChmSharesVesting(2 days, 0, 30 days, _accessControlManager)
-    {}
+    constructor(address _accessControlManager) ChmSharesVesting(2 days, 0, 30 days, _accessControlManager) {}
 }
