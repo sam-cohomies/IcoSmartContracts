@@ -12,6 +12,6 @@ using SafeERC20 for IERC20;
 
 contract ChmAdvisorVesting is ChmSharesVesting {
     constructor(address _accessControlManager)
-        ChmSharesVesting(0, 365 days, 2 * 365 days, _accessControlManager)
+        ChmSharesVesting(2 days, 0, 30 days, _accessControlManager)
     {}
 }

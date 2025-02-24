@@ -7,6 +7,7 @@ import {User} from "./utils/Structs.sol";
 import {TokensVested} from "./utils/Structs.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 using SafeERC20 for IERC20;
 
@@ -18,13 +19,12 @@ contract ChmPublicVesting is ChmBaseVesting {
     {}
 
     function beginVesting(address[] memory _users, uint128[] memory _chmOwed, uint256 _chmSold) external restricted {
-        (uint256 chmBalance, IERC20 chmToken) = _beginVestingSetUp(_users, _chmOwed);
+        (uint256 chmBalance, ERC20Burnable chmToken) = _beginVestingSetUp(_users, _chmOwed);
         for (uint256 i = 0; i < _users.length; i++) {
             userVesting[_users[i]] = TokensVested(0, _chmOwed[i]);
         }
         if (chmBalance > _chmSold) {
-            // TODO: Work out what to do with unsold tokens, currently sending them to the contract owner
-            chmToken.safeTransfer(msg.sender, chmBalance - _chmSold);
+            ERC20Burnable(address(chmToken)).burn(chmBalance - _chmSold);
         }
         _beginVestingFinishUp();
     }

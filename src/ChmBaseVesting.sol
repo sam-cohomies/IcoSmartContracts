@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {TokensVested} from "./utils/Structs.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 using SafeERC20 for IERC20;
 
@@ -42,7 +43,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     function _beginVestingSetUp(address[] memory _users, uint128[] memory _chmOwed)
         internal
         view
-        returns (uint256, IERC20)
+        returns (uint256, ERC20Burnable)
     {
         if (start != 0) {
             revert VestingAlreadyBegun(start);
@@ -53,7 +54,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         if (_users.length != _chmOwed.length) {
             revert MismatchedInputLengths(_users.length, _chmOwed.length);
         }
-        IERC20 chmToken = IERC20(chmTokenAddress);
+        ERC20Burnable chmToken = ERC20Burnable(chmTokenAddress);
         uint256 chmBalance = chmToken.balanceOf(address(this));
         if (chmBalance == 0) {
             revert NothingToRelease();
