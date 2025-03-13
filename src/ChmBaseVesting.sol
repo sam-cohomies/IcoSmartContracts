@@ -23,7 +23,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
 
     mapping(address => User) internal userVesting;
 
-    ERC20Burnable public CHM_TOKEN;
+    ERC20Burnable public immutable CHM_TOKEN;
 
     uint256 public start;
     uint256 public immutable DELAY;

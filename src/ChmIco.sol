@@ -8,7 +8,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ChmBaseVesting} from "./ChmBaseVesting.sol";
 import {Stage, User} from "./utils/Structs.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 
 using SafeERC20 for IERC20;
@@ -64,9 +63,9 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     AggregatorV3Interface private usdtEthPriceFeed;
     uint8 public chainlinkDecimals;
 
-    IERC20 public USDT_TOKEN;
-    IERC20 public USDC_TOKEN;
-    IWETH public WETH_TOKEN;
+    IERC20 public immutable USDT_TOKEN;
+    IERC20 public immutable USDC_TOKEN;
+    IWETH public immutable WETH_TOKEN;
 
     address private immutable TREASURY;
     address public immutable TEAM_VESTING;
@@ -224,8 +223,8 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     function _icoSucceeded() internal vestingStart {
         icoState = IcoState.Succeeded;
         // Burn unsold tokens
-        if (CHM_TOKEN.balanceOf(address(this)) > chmSold) {
-            CHM_TOKEN.burn(CHM_TOKEN.balanceOf(address(this)) - chmSold);
+        if (chmToken.balanceOf(address(this)) > chmSold) {
+            chmToken.burn(chmToken.balanceOf(address(this)) - chmSold);
         }
         // TODO: Start vesting for team
         // TODO: Start vesting for advisors
@@ -249,7 +248,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
 
     function _icoFailed() internal {
         icoState = IcoState.Failed;
-        CHM_TOKEN.burn(CHM_TOKEN.balanceOf(address(this)));
+        chmToken.burn(chmToken.balanceOf(address(this)));
         emit IcoFailed();
     }
 
