@@ -12,4 +12,10 @@ using SafeERC20 for IERC20;
 
 contract ChmAdvisorVesting is ChmSharesVesting {
     constructor(address _accessControlManager) ChmSharesVesting(0, 365 days, 2 * 365 days, _accessControlManager) {}
+
+    function beginVesting(address[] memory _shareholders, uint128[] memory _shares) external restricted {
+        (uint256 _chmBalance,) = _beginVestingSetUp(_shareholders, _shares);
+        _distributeShares(_shareholders, _shares, _chmBalance);
+        _beginVestingFinishUp();
+    }
 }

@@ -40,7 +40,8 @@
         "oderwat.indent-rainbow",
         "trailofbits.slither-vscode",
         "esbenp.prettier-vscode",
-        "ryanluker.vscode-coverage-gutters"
+        "ryanluker.vscode-coverage-gutters",
+        "emeraldwalk.RunOnSave"
       ]
     }
   },

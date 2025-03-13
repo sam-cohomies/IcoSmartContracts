@@ -6,7 +6,6 @@ import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManage
 import {TokensVested} from "./utils/Structs.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 using SafeERC20 for IERC20;
 
@@ -17,8 +16,9 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         AccessManaged(_accessControlManager)
     {}
 
-    function beginVesting(address[] memory _shareholders, uint128[] memory _shares) external restricted {
-        (uint256 _chmBalance, ERC20Burnable chmToken) = _beginVestingSetUp(_shareholders, _shares);
+    function _distributeShares(address[] memory _shareholders, uint128[] memory _shares, uint256 _chmBalance)
+        internal
+    {
         uint128 totalShares = 0;
         uint256 maxShares = 0;
         address maxSharesAddress;
@@ -36,10 +36,9 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         for (uint256 i = 0; i < _shareholders.length; i++) {
             userVesting[_shareholders[i]] = TokensVested(0, chmBalance * _shares[i] / totalShares);
         }
-        chmBalance = uint128(chmToken.balanceOf(address(this)));
+        chmBalance = uint128(IERC20(chmTokenAddress).balanceOf(address(this)));
         if (chmBalance > 0) {
             userVesting[maxSharesAddress].total += chmBalance;
         }
-        _beginVestingFinishUp();
     }
 }

@@ -10,6 +10,14 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 
 using SafeERC20 for IERC20;
 
-contract ChmAdvisorVesting is ChmSharesVesting {
+contract ChmMarketingVesting is ChmSharesVesting {
     constructor(address _accessControlManager) ChmSharesVesting(2 days, 0, 30 days, _accessControlManager) {}
+
+    function beginVesting(address[] memory _shareholders, uint128[] memory _shares) external restricted {
+        (uint256 _chmBalance, ERC20Burnable chmToken) = _beginVestingSetUp(_shareholders, _shares);
+
+        _chmBalance = IERC20(chmTokenAddress).balanceOf(address(this));
+        _distributeShares(_shareholders, _shares, _chmBalance);
+        _beginVestingFinishUp();
+    }
 }
