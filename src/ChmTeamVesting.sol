@@ -1,64 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-import {TeamMember} from "./utils/Structs.sol";
-import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-using SafeERC20 for IERC20;
+import {ChmSharesVesting} from "./ChmSharesVesting.sol";
+import {Fraction} from "./utils/Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
-contract ChmTeamVesting is AccessManaged, ReentrancyGuard {
-    event VestingBegun(uint128[] ids, address[] addresses);
+contract ChmTeamVesting is ChmSharesVesting {
+    address[] internal shareholders;
+    Fraction[] internal shareFractions;
 
-    TeamMember[] private teamMembers;
+    constructor(address _accessControlManager, address _chmToken)
+        ChmSharesVesting(_accessControlManager, _chmToken, 0, 365 days, 365 days, 0)
+    {}
 
-    uint256 private totalShares;
+    function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted {
+        shareholders.push(shareholder);
+        shareFractions.push(shareFraction);
+    }
 
-    address private chmTokenAddress;
-
-    uint64 private constant DELAY = 3 * 365 days;
-    uint64 private constant DURATION = 0;
-
-    constructor(address _accessControlManager, TeamMember[] memory _teamMembers) AccessManaged(_accessControlManager) {
-        for (uint256 i = 0; i < _teamMembers.length; i++) {
-            teamMembers.push(_teamMembers[i]);
-            totalShares += _teamMembers[i].shares;
+    function _allocateSharesFromFractions() internal vestingStart {
+        uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
+        if (chmBalance == 0 || shareholders.length == 0 || shareFractions.length == 0) {
+            revert NothingToRelease();
         }
-    }
-
-    function setChmTokenAddress(address _chmTokenAddress) external restricted {
-        chmTokenAddress = _chmTokenAddress;
-    }
-
-    function beginVesting() external restricted nonReentrant {
-        address[] memory addresses = new address[](teamMembers.length);
-        uint128[] memory ids = new uint128[](teamMembers.length);
-        // get the total number of chm tokens in this contract
-        IERC20 chmToken = IERC20(chmTokenAddress);
-        uint256 chmBalance = chmToken.balanceOf(address(this));
-        uint128 maxShares = 0;
-        address maxSharesAddress;
-        for (uint256 i = 0; i < teamMembers.length; i++) {
-            VestingWallet vestingWallet =
-                new VestingWallet(teamMembers[i].member, uint64(block.timestamp + DELAY), DURATION);
-            address vestingWalletAddress = address(vestingWallet);
-            chmToken.safeTransfer(vestingWalletAddress, chmBalance * teamMembers[i].shares / totalShares);
-            vestingWallet.transferOwnership(teamMembers[i].member);
-            addresses[i] = address(vestingWalletAddress);
-            if (teamMembers[i].shares > maxShares) {
-                maxShares = teamMembers[i].shares;
-                maxSharesAddress = vestingWalletAddress;
+        for (uint256 i = 1; i < shareholders.length; i++) {
+            Fraction memory dilution =
+                Fraction(shareFractions[i].denominator - shareFractions[i].numerator, shareFractions[i].denominator);
+            for (uint256 j = 0; j < i; j++) {
+                shareFractions[j].numerator = shareFractions[j].numerator * dilution.numerator;
+                shareFractions[j].denominator = shareFractions[j].denominator * dilution.denominator;
             }
-            ids[i] = teamMembers[i].id;
         }
-        chmBalance = chmToken.balanceOf(address(this));
-        if (chmBalance > 0) {
-            chmToken.safeTransfer(maxSharesAddress, chmBalance);
+        for (uint256 i = 0; i < shareholders.length; i++) {
+            sharesOwed.push(chmBalance * shareFractions[i].numerator / shareFractions[i].denominator);
+            totalSharesOwed += sharesOwed[i];
         }
-        emit VestingBegun(ids, addresses);
+    }
+
+    function beginVesting() external restricted {
+        _allocateTokensFromShares();
+        _beginVesting();
     }
 }

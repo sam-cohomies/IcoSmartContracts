@@ -17,21 +17,15 @@ struct Stage {
     uint256 startTime; // Start time of the stage using solidity default encoding
 }
 
-struct TeamMember {
-    address member; // Address of the team member
-    uint128 id; // ID of the team member
-    uint128 shares; // Number of shares owned by the team member
-}
-
-struct TokensVested {
-    uint128 released;
-    uint128 total;
-}
-
 struct User {
-    uint256 usdtSpent; // Total USDT measured in microUSDT spent by the user (6 decimals)
-    uint256 usdcSpent; // Total USDC measured in microUSDC spent by the user (6 decimals)
-    uint256 ethSpent; // Total ETH measured in wei spent by the user (18 decimals)
-    uint256 chmOwed; // Total CHM owed to the user (no decimals)
-    uint256 index; // Index into the user list
+    uint128 ethOwed; // Total ETH measured in wei owed to the user (18 decimals)
+    uint128 usdtOwed; // Total USDT measured in microUSDT owed to the user (6 decimals)
+    uint128 usdcOwed; // Total USDC measured in microUSDC owed to the user (6 decimals)
+    uint128 chmOwed; // Total CHM owed to the user (18 decimals)
+    uint128 chmReleased; // Total CHM released to the user (18 decimals)
+}
+
+struct Fraction {
+    uint128 numerator;
+    uint128 denominator;
 }

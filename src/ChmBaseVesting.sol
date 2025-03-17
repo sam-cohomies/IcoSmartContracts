@@ -3,92 +3,81 @@ pragma solidity ^0.8.27;
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {TokensVested} from "./utils/Structs.sol";
+import {User} from "./utils/Structs.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 using SafeERC20 for IERC20;
 
 /// @custom:security-contact sam@cohomies.io
 abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
-    error MismatchedInputLengths(uint256 usersLength, uint256 chmOwedLength);
     error NothingToRelease();
     error ChmAddressNotSet();
     error VestingAlreadyBegun(uint256 start);
     error VestingNotBegun();
+    error TransferFailed();
 
     event VestingBegun();
     event Released();
 
-    mapping(address => TokensVested) internal userVesting;
+    mapping(address => User) internal userVesting;
 
-    address public chmTokenAddress;
+    ERC20Burnable public immutable CHM_TOKEN;
 
     uint256 public start;
     uint256 public immutable DELAY;
     uint256 public immutable CLIFF;
     uint256 public immutable DURATION;
 
-    constructor(uint256 delay, uint256 cliff, uint256 duration) {
+    constructor(address _accessControlManager, address _chmToken, uint256 delay, uint256 cliff, uint256 duration)
+        AccessManaged(_accessControlManager)
+    {
+        if (_chmToken == address(0)) {
+            revert ChmAddressNotSet();
+        }
         DELAY = delay;
         CLIFF = cliff;
         DURATION = duration;
+        CHM_TOKEN = ERC20Burnable(_chmToken);
     }
 
-    function setChmTokenAddress(address _chmTokenAddress) external restricted {
-        chmTokenAddress = _chmTokenAddress;
-    }
-
-    function _beginVestingSetUp(address[] memory _users, uint128[] memory _chmOwed)
-        internal
-        view
-        returns (uint256, ERC20Burnable)
-    {
+    modifier vestingStart() {
         if (start != 0) {
             revert VestingAlreadyBegun(start);
         }
-        if (chmTokenAddress == address(0)) {
-            revert ChmAddressNotSet();
-        }
-        if (_users.length != _chmOwed.length) {
-            revert MismatchedInputLengths(_users.length, _chmOwed.length);
-        }
-        ERC20Burnable chmToken = ERC20Burnable(chmTokenAddress);
-        uint256 chmBalance = chmToken.balanceOf(address(this));
-        if (chmBalance == 0) {
-            revert NothingToRelease();
-        }
-        return (chmBalance, chmToken);
+        _;
     }
 
-    function _beginVestingFinishUp() internal {
+    function _beginVesting() internal {
         start = block.timestamp + DELAY;
         emit VestingBegun();
     }
 
-    function release() external nonReentrant {
+    function release(address user) external nonReentrant {
         if (start == 0) {
             revert VestingNotBegun();
         }
-        uint128 amount = _vestingSchedule(msg.sender) - userVesting[msg.sender].released;
+        uint128 amount = _vestingSchedule(user) - userVesting[user].chmReleased;
         if (amount == 0) {
             revert NothingToRelease();
         }
-        userVesting[msg.sender].released += amount;
-        IERC20(chmTokenAddress).safeTransfer(msg.sender, amount);
-        emit Released();
+        userVesting[user].chmReleased += amount;
+        if (!CHM_TOKEN.approve(user, amount)) {
+            revert TransferFailed();
+        }
     }
 
-    function released() external view returns (uint256) {
-        return userVesting[msg.sender].released;
+    function released() external view returns (uint128) {
+        return userVesting[msg.sender].chmReleased;
     }
 
-    function totalAmount() external view returns (uint256) {
-        return userVesting[msg.sender].total;
+    function totalOwed() external view returns (uint128) {
+        return userVesting[msg.sender].chmOwed;
     }
 
-    function vestedAmount(address user) external view returns (uint256) {
+    function vestedAmount(address user) external view returns (uint128) {
         return _vestingSchedule(user);
     }
 
@@ -96,9 +85,9 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         if (block.timestamp < start + CLIFF) {
             return 0;
         } else if (block.timestamp >= start + DURATION) {
-            return userVesting[user].total;
+            return userVesting[user].chmOwed;
         } else {
-            return uint128(userVesting[user].total * (block.timestamp - start) / DURATION);
+            return uint128((userVesting[user].chmOwed * (block.timestamp - start)) / DURATION);
         }
     }
 }

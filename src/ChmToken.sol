@@ -74,8 +74,6 @@ contract ChmToken is ERC20, ERC20Pausable, ERC20Burnable, AccessManaged, ERC20Pe
         return "mode=timestamp";
     }
 
-    // The following functions are overrides required by Solidity.
-
     function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Pausable, ERC20Votes) {
         super._update(from, to, value);
     }

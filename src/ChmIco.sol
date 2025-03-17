@@ -2,18 +2,18 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.27;
 
-import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ChmPublicVesting} from "./ChmPublicVesting.sol";
+import {ChmBaseVesting} from "./ChmBaseVesting.sol";
 import {Stage, User} from "./utils/Structs.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 using SafeERC20 for IERC20;
 
 /// @custom:security-contact sam@cohomies.io
-contract ChmIco is AccessManaged, ReentrancyGuard {
+contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     error ZeroAddressNotAllowed();
     error InvalidIcoState(IcoState state);
     error InsufficientPayment();
@@ -26,8 +26,7 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
     event IcoSucceeded();
     event IcoFailed();
     event ProgressedStage(IcoState newState);
-    event RefundIssued(address indexed buyer, uint256 amount, Currency currency);
-    event RefundFailed(address indexed buyer, uint256 amount, Currency currency);
+    event RefundIssued(address indexed refundee, uint256 amount, Currency currency);
 
     enum IcoState {
         Stage1,
@@ -54,39 +53,43 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
 
     Stage[] private stages;
 
-    address[] private users;
-    mapping(address => User) private userData;
-
     IcoState private icoState;
 
-    uint256 public constant MINIMUM_RAISE = 1_000_000; // 1 million USDT
-    uint256 private raisedAmount; // Total amount raised in microUSDT (6 decimals)
-    uint256 private chmSold; // Total CHM sold (no decimals)
+    uint64 public constant MINIMUM_RAISE = 1_000_000_000_000; // 1 trillion microUSDT = 1 million USDT
+    uint64 private raisedAmount; // Total amount raised in microUSDT (6 decimals)
+    uint32 private chmSold; // Total CHM sold (no decimals)
 
     address public constant CHAINLINK_USDT_ETH_FEED = 0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46;
     AggregatorV3Interface private usdtEthPriceFeed;
     uint8 public chainlinkDecimals;
 
-    IERC20 public usdtToken;
-    IERC20 public usdcToken;
+    IERC20 public immutable USDT_TOKEN;
+    IERC20 public immutable USDC_TOKEN;
+    IWETH public immutable WETH_TOKEN;
 
     address private immutable TREASURY;
-    ChmPublicVesting public immutable VESTING_CONTRACT;
+    address public immutable TEAM_VESTING;
+    address public immutable MARKETING_VESTING;
 
     constructor(
         address _accessControlManager,
+        address _chmToken,
         address _usdtToken,
         address _usdcToken,
+        address _wethToken,
         address _treasury,
-        ChmPublicVesting _vestingContract
-    ) AccessManaged(_accessControlManager) {
+        address _teamVesting,
+        address _marketingVesting
+    ) ChmBaseVesting(_accessControlManager, _chmToken, 2 days, 0, 30 days) {
         if (_usdtToken == address(0) || _usdcToken == address(0)) {
             revert ZeroAddressNotAllowed();
         }
-        usdtToken = IERC20(_usdtToken);
-        usdcToken = IERC20(_usdcToken);
+        USDT_TOKEN = IERC20(_usdtToken);
+        USDC_TOKEN = IERC20(_usdcToken);
+        WETH_TOKEN = IWETH(_wethToken);
         TREASURY = _treasury;
-        VESTING_CONTRACT = _vestingContract;
+        TEAM_VESTING = _teamVesting;
+        MARKETING_VESTING = _marketingVesting;
         // TODO: Decide how long stages should last
         // TODO: Do some modelling to decide on stage details
         stages.push(Stage(25_000_000, 3_500, 30 days, block.timestamp));
@@ -125,12 +128,13 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         return uint256(price);
     }
 
-    function purchaseTokens(uint256 expectedTokens, Currency currency, uint256 payment, IcoState expectedState)
-        external
-        payable
-        nonReentrant
-        icoActive
-    {
+    function purchaseTokens(
+        address buyer,
+        uint128 expectedTokens,
+        Currency currency,
+        uint128 payment,
+        IcoState expectedState
+    ) external payable nonReentrant icoActive {
         // Checks
         if (icoState != expectedState) {
             revert InvalidIcoState(icoState);
@@ -142,22 +146,22 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         uint256 cost;
         if (currency == Currency.USDT) {
             cost = expectedTokens * currentStage.price;
-            if (usdtToken.allowance(msg.sender, address(this)) < cost) {
+            if (USDT_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
-            userData[msg.sender].usdtSpent += payment;
+            userVesting[buyer].usdtOwed += payment;
         } else if (currency == Currency.USDC) {
             cost = expectedTokens * currentStage.price;
-            if (usdcToken.allowance(msg.sender, address(this)) < cost) {
+            if (USDC_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
-            userData[msg.sender].usdcSpent += payment;
+            userVesting[buyer].usdcOwed += payment;
         } else if (currency == Currency.ETH) {
-            cost = expectedTokens * currentStage.price * getLatestUsdtEthPrice() / (10 ** chainlinkDecimals);
+            cost = (expectedTokens * currentStage.price * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals);
             if (msg.value < cost) {
                 revert InsufficientPayment();
             }
-            userData[msg.sender].ethSpent += payment;
+            userVesting[buyer].ethOwed += payment;
         } else {
             revert UnsupportedCurrency();
         }
@@ -166,14 +170,10 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         }
 
         // Effects
-        if (userData[msg.sender].chmOwed == 0) {
-            userData[msg.sender].index = users.length;
-            users.push(msg.sender);
-        }
-        userData[msg.sender].chmOwed += expectedTokens;
+        userVesting[buyer].chmOwed += expectedTokens;
         currentStage.tokensAvailable -= expectedTokens;
-        raisedAmount += expectedTokens * currentStage.price;
-        chmSold += expectedTokens;
+        raisedAmount += uint64(expectedTokens * currentStage.price);
+        chmSold += uint32(expectedTokens);
 
         if (currentStage.tokensAvailable == 0 || block.timestamp >= currentStage.startTime + currentStage.duration) {
             _progressStage();
@@ -181,20 +181,26 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
 
         // Interactions
         uint256 ethToRefund = 0;
-        if (currency == Currency.USDT) {
-            usdtToken.safeTransferFrom(msg.sender, address(this), payment);
-            ethToRefund = msg.value;
-        } else if (currency == Currency.USDC) {
-            usdcToken.safeTransferFrom(msg.sender, address(this), payment);
-            ethToRefund = msg.value;
-        } else if (currency == Currency.ETH) {
+        if (msg.value > 0) {
+            WETH_TOKEN.deposit{value: msg.value}();
+        }
+        if (currency == Currency.ETH) {
             ethToRefund = msg.value - cost;
+        } else {
+            ethToRefund = msg.value;
+            if (currency == Currency.USDT) {
+                USDT_TOKEN.safeTransferFrom(buyer, address(this), payment);
+            } else if (currency == Currency.USDC) {
+                USDC_TOKEN.safeTransferFrom(buyer, address(this), payment);
+            }
         }
         if (ethToRefund > 0) {
-            payable(msg.sender).transfer(ethToRefund);
+            if (!WETH_TOKEN.approve(buyer, ethToRefund)) {
+                revert TransferFailed();
+            }
         }
 
-        emit TokensPurchased(msg.sender, expectedTokens, currency, payment);
+        emit TokensPurchased(buyer, expectedTokens, currency, payment);
     }
 
     function progressStage() external nonReentrant restricted icoActive {
@@ -213,38 +219,34 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         }
     }
 
-    function _icoSucceeded() internal {
+    function _icoSucceeded() internal vestingStart {
         icoState = IcoState.Succeeded;
-        // Inform vesting contract
-        uint256 usersLength = users.length;
-        uint128[] memory chmOwed = new uint128[](usersLength);
-        for (uint256 i = 0; i < usersLength; i++) {
-            chmOwed[i] = uint128(userData[users[i]].chmOwed);
+        // Burn unsold tokens
+        if (CHM_TOKEN.balanceOf(address(this)) > chmSold) {
+            CHM_TOKEN.burn(CHM_TOKEN.balanceOf(address(this)) - chmSold);
         }
-        VESTING_CONTRACT.beginVesting(users, chmOwed, chmSold);
         // TODO: Start vesting for team
-        // TODO: Start vesting for advisors
+        // TODO: Start vesting for marketing
+        _beginVesting();
         // Transfer all raised funds to treasury
-        uint256 etherBalance = address(this).balance;
+        uint256 etherBalance = WETH_TOKEN.balanceOf(address(this));
         if (etherBalance > 0) {
-            (bool success,) = TREASURY.call{value: etherBalance}("");
-            if (!success) {
-                revert TransferFailed();
-            }
+            WETH_TOKEN.safeTransfer(TREASURY, etherBalance);
         }
-        uint256 usdtBalance = usdtToken.balanceOf(address(this));
+        uint256 usdtBalance = USDT_TOKEN.balanceOf(address(this));
         if (usdtBalance > 0) {
-            usdtToken.safeTransfer(TREASURY, usdtBalance);
+            USDT_TOKEN.safeTransfer(TREASURY, usdtBalance);
         }
-        uint256 usdcBalance = usdcToken.balanceOf(address(this));
+        uint256 usdcBalance = USDC_TOKEN.balanceOf(address(this));
         if (usdcBalance > 0) {
-            usdcToken.safeTransfer(TREASURY, usdcBalance);
+            USDC_TOKEN.safeTransfer(TREASURY, usdcBalance);
         }
         emit IcoSucceeded();
     }
 
     function _icoFailed() internal {
         icoState = IcoState.Failed;
+        CHM_TOKEN.burn(CHM_TOKEN.balanceOf(address(this)));
         emit IcoFailed();
     }
 
@@ -267,86 +269,55 @@ contract ChmIco is AccessManaged, ReentrancyGuard {
         emit ProgressedStage(icoState);
     }
 
-    function refund() external nonReentrant {
-        if (icoState != IcoState.Failed) {
-            revert InvalidIcoState(icoState);
-        }
-
-        User memory user = userData[msg.sender];
-        if (user.chmOwed == 0) {
+    // External function to refund ETH to a buyer
+    function refundEth(address refundee) external nonReentrant {
+        // Checks
+        User memory user = userVesting[refundee];
+        if (user.ethOwed <= 0) {
             revert NoRefundAvailable();
         }
 
-        // Process each currency separately to ensure refunds are processed even if one fails
-        uint256 usdtRefundRemaining = _refundUdst(msg.sender, user.usdtSpent);
-        uint256 usdcRefundRemaining = _refundUsdc(msg.sender, user.usdcSpent);
-        uint256 ethRefundRemaining = _refundEth(payable(msg.sender), user.ethSpent);
-        uint256 chmOwedRemaining = usdtRefundRemaining + usdcRefundRemaining + ethRefundRemaining;
-        if (chmOwedRemaining > 0) {
-            chmOwedRemaining = user.chmOwed;
-        }
+        // Effects
+        uint128 amount = user.ethOwed;
+        userVesting[refundee].ethOwed = 0;
 
-        if (chmOwedRemaining > 0) {
-            userData[msg.sender] =
-                User(usdtRefundRemaining, usdcRefundRemaining, ethRefundRemaining, chmOwedRemaining, user.index);
-        } else {
-            address lastUser = users[users.length - 1];
-            userData[lastUser].index = user.index;
-            users[user.index] = lastUser;
-            users.pop();
-            delete userData[msg.sender];
-        }
+        // Interactions
+        WETH_TOKEN.approve(refundee, amount);
+        emit RefundIssued(refundee, amount, Currency.ETH);
     }
 
-    // Internal function to refund USDT to a buyer
-    // Returns the amount of USDT that could not be refunded
-    function _refundUdst(address buyer, uint256 amount) internal returns (uint256) {
-        if (amount > 0) {
-            (bool success, bytes memory data) =
-                address(usdtToken).call(abi.encodeWithSelector(usdtToken.transfer.selector, buyer, amount));
-
-            if (success && (data.length == 0 || abi.decode(data, (bool)))) {
-                emit RefundIssued(buyer, amount, Currency.USDT);
-                return 0;
-            }
-
-            emit RefundFailed(buyer, amount, Currency.USDT);
-            return amount;
+    // External function to refund USDT to a buyer
+    function refundUdst(address refundee) external nonReentrant {
+        // Checks
+        User memory user = userVesting[refundee];
+        if (user.usdtOwed <= 0) {
+            revert NoRefundAvailable();
         }
-        return 0;
+
+        // Effects
+        uint128 amount = user.usdtOwed;
+        userVesting[refundee].usdtOwed = 0;
+
+        // Interactions
+        USDT_TOKEN.approve(refundee, amount);
+        emit RefundIssued(refundee, amount, Currency.USDT);
     }
 
-    // Internal function to refund USDC to a buyer
-    // Returns the amount of USDC that could not be refunded
-    function _refundUsdc(address buyer, uint256 amount) internal returns (uint256) {
-        if (amount > 0) {
-            (bool success, bytes memory data) =
-                address(usdcToken).call(abi.encodeWithSelector(usdcToken.transfer.selector, buyer, amount));
-
-            if (success && (data.length == 0 || abi.decode(data, (bool)))) {
-                emit RefundIssued(buyer, amount, Currency.USDC);
-                return 0;
-            }
-
-            emit RefundFailed(buyer, amount, Currency.USDC);
-            return amount;
+    // External function to refund USDC to a buyer
+    function refundUsdc(address refundee) external nonReentrant {
+        // Checks
+        User memory user = userVesting[refundee];
+        if (user.usdcOwed <= 0) {
+            revert NoRefundAvailable();
         }
-        return 0;
-    }
 
-    // Internal function to refund ETH to a buyer
-    // Returns the amount of ETH that could not be refunded
-    function _refundEth(address payable buyer, uint256 amount) internal returns (uint256) {
-        if (amount > 0) {
-            (bool success,) = buyer.call{value: amount}("");
-            if (success) {
-                emit RefundIssued(buyer, amount, Currency.ETH);
-                return 0;
-            }
-            emit RefundFailed(buyer, amount, Currency.ETH);
-            return amount;
-        }
-        return 0;
+        // Effects
+        uint128 amount = user.usdcOwed;
+        userVesting[refundee].usdcOwed = 0;
+
+        // Interactions
+        USDC_TOKEN.approve(refundee, amount);
+        emit RefundIssued(refundee, amount, Currency.USDC);
     }
 
     function getIcoState() external view returns (IcoState) {
