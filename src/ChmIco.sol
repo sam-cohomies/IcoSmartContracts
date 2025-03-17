@@ -19,7 +19,6 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     error InsufficientPayment();
     error UnsupportedCurrency();
     error InsufficientTokensAvailable();
-    error TransferFailed();
     error NoRefundAvailable();
 
     event TokensPurchased(address indexed buyer, uint256 amount, Currency currency, uint256 payment);

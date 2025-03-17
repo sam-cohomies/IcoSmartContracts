@@ -6,7 +6,6 @@ import {Fraction} from "./utils/Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmTeamVesting is ChmSharesVesting {
-    address[] internal shareholders;
     Fraction[] internal shareFractions;
 
     constructor(address _accessControlManager, address _chmToken)
