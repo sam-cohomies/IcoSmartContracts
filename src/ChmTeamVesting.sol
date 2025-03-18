@@ -17,7 +17,7 @@ contract ChmTeamVesting is ChmSharesVesting {
         shareFractions.push(shareFraction);
     }
 
-    function _allocateSharesFromFractions() internal vestingStart {
+    function _allocateSharesFromFractions() internal vestingNotStarted {
         uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
         if (chmBalance == 0 || shareholders.length == 0 || shareFractions.length == 0) {
             revert NothingToRelease();
@@ -36,8 +36,8 @@ contract ChmTeamVesting is ChmSharesVesting {
         }
     }
 
-    function beginVesting() external restricted {
-        _allocateTokensFromShares();
-        _beginVesting();
+    function _startVestingBoilerplate() internal override {
+        _allocateSharesFromFractions();
+        super._startVestingBoilerplate();
     }
 }

@@ -23,7 +23,7 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         CHM_FOR_SHARES = chmForShares;
     }
 
-    function _allocateTokensFromShares() internal vestingStart {
+    function _allocateTokensFromShares() internal vestingNotStarted {
         uint256 chmBalance = CHM_TOKEN.balanceOf(address(this));
         if (chmBalance == 0 || shareholders.length == 0 || sharesOwed.length == 0) {
             revert NothingToRelease();
@@ -44,5 +44,10 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         if (chmAllocated < chmForShares) {
             userVesting[maxShareholder].chmOwed += chmForShares - chmAllocated;
         }
+    }
+
+    function _startVestingBoilerplate() internal override {
+        _allocateTokensFromShares();
+        super._startVestingBoilerplate();
     }
 }

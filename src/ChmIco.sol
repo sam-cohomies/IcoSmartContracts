@@ -67,8 +67,8 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     IWETH public immutable WETH_TOKEN;
 
     address private immutable TREASURY;
-    address public immutable TEAM_VESTING;
-    address public immutable MARKETING_VESTING;
+    ChmBaseVesting public immutable TEAM_VESTING;
+    ChmBaseVesting public immutable MARKETING_VESTING;
 
     constructor(
         address _accessControlManager,
@@ -87,8 +87,8 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         USDC_TOKEN = IERC20(_usdcToken);
         WETH_TOKEN = IWETH(_wethToken);
         TREASURY = _treasury;
-        TEAM_VESTING = _teamVesting;
-        MARKETING_VESTING = _marketingVesting;
+        TEAM_VESTING = ChmBaseVesting(_teamVesting);
+        MARKETING_VESTING = ChmBaseVesting(_marketingVesting);
         // TODO: Decide how long stages should last
         // TODO: Do some modelling to decide on stage details
         stages.push(Stage(25_000_000, 3_500, 30 days, block.timestamp));
@@ -224,9 +224,9 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         if (CHM_TOKEN.balanceOf(address(this)) > chmSold) {
             CHM_TOKEN.burn(CHM_TOKEN.balanceOf(address(this)) - chmSold);
         }
-        // TODO: Start vesting for team
-        // TODO: Start vesting for marketing
-        _beginVesting();
+        TEAM_VESTING.startVesting();
+        MARKETING_VESTING.startVesting();
+        startVesting();
         // Transfer all raised funds to treasury
         uint256 etherBalance = WETH_TOKEN.balanceOf(address(this));
         if (etherBalance > 0) {

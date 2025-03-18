@@ -42,16 +42,20 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         CHM_TOKEN = ERC20Burnable(_chmToken);
     }
 
-    modifier vestingStart() {
+    modifier vestingNotStarted() {
         if (start != 0) {
             revert VestingAlreadyBegun(start);
         }
         _;
     }
 
-    function _beginVesting() internal {
+    function _startVestingBoilerplate() internal virtual {
         start = block.timestamp + DELAY;
         emit VestingBegun();
+    }
+
+    function startVesting() public restricted vestingNotStarted {
+        _startVestingBoilerplate();
     }
 
     function release(address user) external nonReentrant {
