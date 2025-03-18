@@ -7,7 +7,6 @@ import {User} from "./utils/Structs.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {IWETH} from "./interfaces/IWETH.sol";
 
 using SafeERC20 for IERC20;
 
@@ -69,6 +68,18 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         }
     }
 
+    function released(address user) external restricted returns (uint128) {
+        return userVesting[user].chmReleased;
+    }
+
+    function totalOwed(address user) external restricted returns (uint128) {
+        return userVesting[user].chmOwed;
+    }
+
+    function vestedAmount(address user) external restricted returns (uint128) {
+        return _vestingSchedule(user);
+    }
+
     function released() external view returns (uint128) {
         return userVesting[msg.sender].chmReleased;
     }
@@ -77,8 +88,8 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         return userVesting[msg.sender].chmOwed;
     }
 
-    function vestedAmount(address user) external view returns (uint128) {
-        return _vestingSchedule(user);
+    function vestedAmount() external view returns (uint128) {
+        return _vestingSchedule(msg.sender);
     }
 
     function _vestingSchedule(address user) internal view returns (uint128) {
