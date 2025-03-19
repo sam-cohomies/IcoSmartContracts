@@ -41,7 +41,8 @@
         "trailofbits.slither-vscode",
         "esbenp.prettier-vscode",
         "ryanluker.vscode-coverage-gutters",
-        "emeraldwalk.RunOnSave"
+        "emeraldwalk.RunOnSave",
+        "openai.chatgpt"
       ]
     }
   },
