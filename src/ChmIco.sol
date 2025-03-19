@@ -218,7 +218,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         }
     }
 
-    function _icoSucceeded() internal vestingStart {
+    function _icoSucceeded() internal vestingNotStarted {
         icoState = IcoState.Succeeded;
         // Burn unsold tokens
         if (CHM_TOKEN.balanceOf(address(this)) > chmSold) {
