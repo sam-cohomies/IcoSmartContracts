@@ -46,7 +46,7 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         }
     }
 
-    function _startVestingBoilerplate() internal override {
+    function _startVestingBoilerplate() internal virtual override {
         _allocateTokensFromShares();
         super._startVestingBoilerplate();
     }

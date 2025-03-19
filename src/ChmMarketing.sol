@@ -36,9 +36,4 @@ contract ChmMarketingVesting is ChmSharesVesting {
         userVesting[marketer].chmOwed += chm;
         emit TokensAllocated(marketer, chm, cid);
     }
-
-    function beginVesting() external restricted {
-        _allocateTokensFromShares();
-        _beginVesting();
-    }
 }
