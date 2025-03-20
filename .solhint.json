@@ -13,5 +13,9 @@
     "gas-strict-inequalities": "warn",
     "gas-struct-packing": "warn",
     "max-line-length": ["error", { "limit": 120 }]
+  },
+  "import-paths": ["lib"],
+  "importPathRemappings": {
+    "@chainlink/contracts/": "lib/chainlink-brownie-contracts/contracts/src/"
   }
 }
