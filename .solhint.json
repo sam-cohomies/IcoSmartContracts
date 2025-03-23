@@ -12,7 +12,7 @@
     "gas-small-strings": "warn",
     "gas-strict-inequalities": "warn",
     "gas-struct-packing": "warn",
-    "max-line-length": ["error", { "limit": 120 }]
+    "max-line-length": ["error", { "limit": 119 }]
   },
   "import-paths": ["lib"],
   "importPathRemappings": {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {ChmSharesVesting} from "./ChmSharesVesting.sol";
-import {Fraction} from "./utils/Structs.sol";
+import {Fraction} from "../utils/Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmTeamVesting is ChmSharesVesting {

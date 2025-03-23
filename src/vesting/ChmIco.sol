@@ -7,8 +7,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/v0.8/shared/interfaces
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ChmBaseVesting} from "./ChmBaseVesting.sol";
-import {Stage, User} from "./utils/Structs.sol";
-import {IWETH} from "./interfaces/IWETH.sol";
+import {Stage, User} from "../utils/Structs.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 using SafeERC20 for IERC20;
 

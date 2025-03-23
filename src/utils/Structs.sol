@@ -29,3 +29,11 @@ struct Fraction {
     uint128 numerator;
     uint128 denominator;
 }
+
+struct AllocationAddresses {
+    address presaleIco;
+    address marketing;
+    address team;
+    address liquidityPools;
+    address liquidityRewards;
+}

@@ -30,6 +30,9 @@
             }
         ]
     },
+    "[solidity]": {
+        "editor.formatOnSave": false
+    },
     "solidity.remappings": [
         "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/"
     ]

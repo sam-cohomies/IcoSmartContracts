@@ -10,4 +10,7 @@ remappings = [
     '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/',
 ]
 
+[fmt]
+line_length = 119
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
