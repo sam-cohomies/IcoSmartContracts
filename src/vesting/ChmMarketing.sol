@@ -12,8 +12,16 @@ contract ChmMarketingVesting is ChmSharesVesting {
 
     event TokensAllocated(address indexed marketer, uint128 chm, string cid);
 
-    constructor(address _accessControlManager, address _chmToken)
-        ChmSharesVesting(_accessControlManager, _chmToken, 2 days, 0, 30 days, CHM_FOR_AFFILIATE_MARKETING)
+    constructor(address _accessControlManager, address chmToken_, address chmIcoGovernanceToken_)
+        ChmSharesVesting(
+            _accessControlManager,
+            chmToken_,
+            chmIcoGovernanceToken_,
+            2 days,
+            0,
+            30 days,
+            CHM_FOR_AFFILIATE_MARKETING
+        )
     {}
 
     // TODO: hook this up to ICO contract
@@ -33,6 +41,9 @@ contract ChmMarketingVesting is ChmSharesVesting {
         restricted
         nonReentrant
     {
+        if (!CHM_ICO_GOVERNANCE_TOKEN.approve(marketer, chm)) {
+            revert TransferFailed();
+        }
         userVesting[marketer].chmOwed += chm;
         emit TokensAllocated(marketer, chm, cid);
     }

@@ -6,15 +6,34 @@ import {Fraction} from "../utils/Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmTeamVesting is ChmSharesVesting {
+    error ShareholderAlreadyAdded();
+
     Fraction[] internal shareFractions;
 
-    constructor(address _accessControlManager, address _chmToken)
-        ChmSharesVesting(_accessControlManager, _chmToken, 0, 365 days, 365 days, 0)
+    constructor(address _accessControlManager, address chmToken_, address chmIcoGovernanceToken_)
+        ChmSharesVesting(_accessControlManager, chmToken_, chmIcoGovernanceToken_, 0, 365 days, 365 days, 0)
     {}
 
-    function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted {
+    function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted nonReentrant {
+        Fraction memory dilution =
+            Fraction(shareFraction.denominator - shareFraction.numerator, shareFraction.denominator);
+        for (uint256 i = 0; i < shareholders.length - 1; i++) {
+            if (shareholders[i] == shareholder) {
+                revert ShareholderAlreadyAdded();
+            }
+            shareFractions[i].numerator = shareFractions[i].numerator * dilution.numerator;
+            shareFractions[i].denominator = shareFractions[i].denominator * dilution.denominator;
+        }
         shareholders.push(shareholder);
         shareFractions.push(shareFraction);
+        sharesOwed.push(0);
+        uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
+        if (shareholders.length == 1) {
+            sharesOwed[0] = chmBalance;
+            totalSharesOwed = chmBalance;
+        } else {
+            _allocateSharesFromFractions();
+        }
     }
 
     function _allocateSharesFromFractions() internal vestingNotStarted {
@@ -22,22 +41,18 @@ contract ChmTeamVesting is ChmSharesVesting {
         if (chmBalance == 0 || shareholders.length == 0 || shareFractions.length == 0) {
             revert NothingToRelease();
         }
-        for (uint256 i = 1; i < shareholders.length; i++) {
-            Fraction memory dilution =
-                Fraction(shareFractions[i].denominator - shareFractions[i].numerator, shareFractions[i].denominator);
-            for (uint256 j = 0; j < i; j++) {
-                shareFractions[j].numerator = shareFractions[j].numerator * dilution.numerator;
-                shareFractions[j].denominator = shareFractions[j].denominator * dilution.denominator;
-            }
-        }
-        for (uint256 i = 0; i < shareholders.length; i++) {
-            sharesOwed.push(chmBalance * shareFractions[i].numerator / shareFractions[i].denominator);
+        totalSharesOwed = 0;
+        for (uint256 i = 0; i < shareholders.length - 1; i++) {
+            sharesOwed[i] = (chmBalance * shareFractions[i].numerator / shareFractions[i].denominator);
             totalSharesOwed += sharesOwed[i];
         }
     }
 
     function _startVestingBoilerplate() internal override {
         _allocateSharesFromFractions();
+        for (uint256 i = 0; i < shareholders.length; i++) {
+            CHM_ICO_GOVERNANCE_TOKEN.approve(shareholders[i], sharesOwed[i]);
+        }
         super._startVestingBoilerplate();
     }
 }

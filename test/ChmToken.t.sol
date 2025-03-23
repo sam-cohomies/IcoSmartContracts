@@ -67,7 +67,7 @@ contract ChmTokenTest is Test {
         // Deploy the token contract
         vm.startPrank(deployer);
         manager = new AccessManager(deployer);
-        token = new ChmToken(address(manager), AllocationAddresses(presale, marketing, exchange, team, advisors));
+        token = new ChmToken(address(manager), AllocationAddresses(presale, marketing, team, exchange));
 
         string[] memory roles = new string[](1);
         roles[0] = "CHM_TOKEN_PAUSER";

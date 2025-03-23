@@ -71,24 +71,25 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     ChmBaseVesting public immutable MARKETING_VESTING;
 
     constructor(
-        address _accessControlManager,
-        address _chmToken,
-        address _usdtToken,
-        address _usdcToken,
-        address _wethToken,
-        address _treasury,
-        address _teamVesting,
-        address _marketingVesting
-    ) ChmBaseVesting(_accessControlManager, _chmToken, 2 days, 0, 30 days) {
-        if (_usdtToken == address(0) || _usdcToken == address(0)) {
+        address accessControlManager_,
+        address chmToken_,
+        address chmIcoGovernanceToken_,
+        address usdtToken_,
+        address usdcToken_,
+        address wethToken_,
+        address treasury_,
+        address teamVesting_,
+        address marketingVesting_
+    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, 2 days, 0, 30 days) {
+        if (usdtToken_ == address(0) || usdcToken_ == address(0)) {
             revert ZeroAddressNotAllowed();
         }
-        USDT_TOKEN = IERC20(_usdtToken);
-        USDC_TOKEN = IERC20(_usdcToken);
-        WETH_TOKEN = IWETH(_wethToken);
-        TREASURY = _treasury;
-        TEAM_VESTING = ChmBaseVesting(_teamVesting);
-        MARKETING_VESTING = ChmBaseVesting(_marketingVesting);
+        USDT_TOKEN = IERC20(usdtToken_);
+        USDC_TOKEN = IERC20(usdcToken_);
+        WETH_TOKEN = IWETH(wethToken_);
+        TREASURY = treasury_;
+        TEAM_VESTING = ChmBaseVesting(teamVesting_);
+        MARKETING_VESTING = ChmBaseVesting(marketingVesting_);
         // TODO: Decide how long stages should last
         // TODO: Do some modelling to decide on stage details
         stages.push(Stage(25_000_000, 3_500, 30 days, block.timestamp));
@@ -179,6 +180,9 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         }
 
         // Interactions
+        if (!CHM_ICO_GOVERNANCE_TOKEN.approve(buyer, expectedTokens)) {
+            revert TransferFailed();
+        }
         uint256 ethToRefund = 0;
         if (msg.value > 0) {
             WETH_TOKEN.deposit{value: msg.value}();

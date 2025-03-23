@@ -5,6 +5,5 @@ enum AllocationType {
     PRESALE_ICO,
     MARKETING,
     TEAM,
-    LIQUIDITY_POOLS,
-    LIQUIDITY_REWARDS
+    LIQUIDITY_POOLS
 }

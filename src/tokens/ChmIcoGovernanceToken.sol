@@ -4,7 +4,6 @@ pragma solidity ^0.8.27;
 
 import {ChmBaseToken} from "./ChmBaseToken.sol";
 import {AllocationAddresses} from "../utils/Structs.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmIcoGovernanceToken is ChmBaseToken {
@@ -17,9 +16,8 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
 
     mapping(address => bool) private _distributors;
 
-    constructor(AllocationAddresses memory allocationAddresses_)
-        ChmBaseToken(_NAME, "CIG", allocationAddresses_, false)
-        EIP712(_NAME, "1")
+    constructor(address accessControlManager_, AllocationAddresses memory allocationAddresses_)
+        ChmBaseToken(_NAME, "CIG", accessControlManager_, allocationAddresses_, [true, true, false, false])
     {
         _distributors[allocationAddresses_.presaleIco] = true;
         _distributors[allocationAddresses_.marketing] = true;
@@ -44,5 +42,9 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
         returns (bool)
     {
         return super.transferFrom(sender, recipient, amount);
+    }
+
+    function addDistributor(address distributor) external restricted {
+        _distributors[distributor] = true;
     }
 }

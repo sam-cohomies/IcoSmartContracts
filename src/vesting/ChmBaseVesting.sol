@@ -4,11 +4,7 @@ pragma solidity ^0.8.27;
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {User} from "../utils/Structs.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-
-using SafeERC20 for IERC20;
+import {ChmBaseToken} from "../tokens/ChmBaseToken.sol";
 
 /// @custom:security-contact sam@cohomies.io
 abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
@@ -23,23 +19,30 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
 
     mapping(address => User) internal userVesting;
 
-    ERC20Burnable public immutable CHM_TOKEN;
+    ChmBaseToken public immutable CHM_TOKEN;
+    ChmBaseToken public immutable CHM_ICO_GOVERNANCE_TOKEN;
 
     uint256 public start;
     uint256 public immutable DELAY;
     uint256 public immutable CLIFF;
     uint256 public immutable DURATION;
 
-    constructor(address _accessControlManager, address _chmToken, uint256 delay, uint256 cliff, uint256 duration)
-        AccessManaged(_accessControlManager)
-    {
-        if (_chmToken == address(0)) {
+    constructor(
+        address accessControlManager_,
+        address chmToken_,
+        address chmIcoGovernanceToken_,
+        uint256 delay,
+        uint256 cliff,
+        uint256 duration
+    ) AccessManaged(accessControlManager_) {
+        if (chmToken_ == address(0)) {
             revert ChmAddressNotSet();
         }
         DELAY = delay;
         CLIFF = cliff;
         DURATION = duration;
-        CHM_TOKEN = ERC20Burnable(_chmToken);
+        CHM_TOKEN = ChmBaseToken(chmToken_);
+        CHM_ICO_GOVERNANCE_TOKEN = ChmBaseToken(chmIcoGovernanceToken_);
     }
 
     modifier vestingNotStarted() {
@@ -58,7 +61,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         _startVestingBoilerplate();
     }
 
-    function release(address user) external nonReentrant {
+    function release(address user, uint8 v, bytes32 r, bytes32 s) external nonReentrant {
         if (start == 0) {
             revert VestingNotBegun();
         }
@@ -70,6 +73,8 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         if (!CHM_TOKEN.approve(user, amount)) {
             revert TransferFailed();
         }
+        CHM_ICO_GOVERNANCE_TOKEN.permit(user, address(this), amount, block.timestamp, v, r, s);
+        CHM_ICO_GOVERNANCE_TOKEN.burnFrom(user, amount);
     }
 
     function released(address user) external restricted returns (uint128) {

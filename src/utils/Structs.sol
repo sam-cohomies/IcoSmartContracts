@@ -35,5 +35,4 @@ struct AllocationAddresses {
     address marketing;
     address team;
     address liquidityPools;
-    address liquidityRewards;
 }

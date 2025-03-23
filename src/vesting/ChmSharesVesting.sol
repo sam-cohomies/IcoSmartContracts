@@ -13,13 +13,14 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
     uint128 internal totalSharesOwed;
 
     constructor(
-        address _accessControlManager,
-        address _chmToken,
+        address accessControlManager_,
+        address chmToken_,
+        address chmIcoGovernanceToken_,
         uint256 delay,
         uint256 cliff,
         uint256 duration,
         uint128 chmForShares
-    ) ChmBaseVesting(_accessControlManager, _chmToken, delay, cliff, duration) {
+    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, delay, cliff, duration) {
         CHM_FOR_SHARES = chmForShares;
     }
 
