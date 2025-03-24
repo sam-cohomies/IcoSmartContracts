@@ -17,28 +17,28 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
     mapping(address => bool) private _distributors;
 
     constructor(address accessControlManager_, AllocationAddresses memory allocationAddresses_)
-        ChmBaseToken(_NAME, "CIG", accessControlManager_, allocationAddresses_, [true, true, false, false])
+        ChmBaseToken(_NAME, "CIG", accessControlManager_, allocationAddresses_, [true, true, true, false])
     {
         _distributors[allocationAddresses_.presaleIco] = true;
         _distributors[allocationAddresses_.marketing] = true;
         _distributors[allocationAddresses_.team] = true;
     }
 
-    modifier onlyDistributor() {
-        if (!_distributors[msg.sender]) {
+    modifier onlyDistributor(address sender) {
+        if (!_distributors[sender]) {
             revert NotADistributor();
         }
         _;
     }
 
-    function transfer(address recipient, uint256 amount) public override onlyDistributor returns (bool) {
+    function transfer(address recipient, uint256 amount) public override onlyDistributor(msg.sender) returns (bool) {
         return super.transfer(recipient, amount);
     }
 
     function transferFrom(address sender, address recipient, uint256 amount)
         public
         override
-        onlyDistributor
+        onlyDistributor(sender)
         returns (bool)
     {
         return super.transferFrom(sender, recipient, amount);
