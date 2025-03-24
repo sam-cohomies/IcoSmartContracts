@@ -8,13 +8,13 @@ import {ChmSharesVesting} from "./ChmSharesVesting.sol";
 contract ChmMarketingVesting is ChmSharesVesting {
     uint128 public constant CHM_FOR_AFFILIATE_MARKETING = 100_000_000 * 1e18; // 100,000,000 CHM
 
-    mapping(address => uint256) private affiliateMarketers;
+    mapping(address => uint256) private _affiliateMarketers;
 
     event TokensAllocated(address indexed marketer, uint128 chm, string cid);
 
-    constructor(address _accessControlManager, address chmToken_, address chmIcoGovernanceToken_)
+    constructor(address accessControlManager_, address chmToken_, address chmIcoGovernanceToken_)
         ChmSharesVesting(
-            _accessControlManager,
+            accessControlManager_,
             chmToken_,
             chmIcoGovernanceToken_,
             2 days,
@@ -26,12 +26,12 @@ contract ChmMarketingVesting is ChmSharesVesting {
 
     // TODO: hook this up to ICO contract
     function allocateAffiliateMarketingShares(address marketer, uint128 shares) external restricted nonReentrant {
-        if (affiliateMarketers[marketer] == 0) {
+        if (_affiliateMarketers[marketer] == 0) {
             shareholders.push(marketer);
-            affiliateMarketers[marketer] = shareholders.length;
+            _affiliateMarketers[marketer] = shareholders.length;
             sharesOwed.push(shares);
         } else {
-            sharesOwed[affiliateMarketers[marketer] - 1] += shares;
+            sharesOwed[_affiliateMarketers[marketer] - 1] += shares;
         }
         totalSharesOwed += shares;
     }
@@ -44,7 +44,7 @@ contract ChmMarketingVesting is ChmSharesVesting {
         if (!CHM_ICO_GOVERNANCE_TOKEN.approve(marketer, chm)) {
             revert TransferFailed();
         }
-        userVesting[marketer].chmOwed += chm;
+        _userVesting[marketer].chmOwed += chm;
         emit TokensAllocated(marketer, chm, cid);
     }
 }

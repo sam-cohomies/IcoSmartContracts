@@ -149,19 +149,19 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
             if (USDT_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
-            userVesting[buyer].usdtOwed += payment;
+            _userVesting[buyer].usdtOwed += payment;
         } else if (currency == Currency.USDC) {
             cost = expectedTokens * currentStage.price;
             if (USDC_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
-            userVesting[buyer].usdcOwed += payment;
+            _userVesting[buyer].usdcOwed += payment;
         } else if (currency == Currency.ETH) {
             cost = (expectedTokens * currentStage.price * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals);
             if (msg.value < cost) {
                 revert InsufficientPayment();
             }
-            userVesting[buyer].ethOwed += payment;
+            _userVesting[buyer].ethOwed += payment;
         } else {
             revert UnsupportedCurrency();
         }
@@ -170,7 +170,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         }
 
         // Effects
-        userVesting[buyer].chmOwed += expectedTokens;
+        _userVesting[buyer].chmOwed += expectedTokens;
         currentStage.tokensAvailable -= expectedTokens;
         raisedAmount += uint64(expectedTokens * currentStage.price);
         chmSold += uint32(expectedTokens);
@@ -275,14 +275,14 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     // External function to refund ETH to a buyer
     function refundEth(address refundee) external nonReentrant {
         // Checks
-        User memory user = userVesting[refundee];
+        User memory user = _userVesting[refundee];
         if (user.ethOwed <= 0) {
             revert NoRefundAvailable();
         }
 
         // Effects
         uint128 amount = user.ethOwed;
-        userVesting[refundee].ethOwed = 0;
+        _userVesting[refundee].ethOwed = 0;
 
         // Interactions
         WETH_TOKEN.approve(refundee, amount);
@@ -292,14 +292,14 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     // External function to refund USDT to a buyer
     function refundUdst(address refundee) external nonReentrant {
         // Checks
-        User memory user = userVesting[refundee];
+        User memory user = _userVesting[refundee];
         if (user.usdtOwed <= 0) {
             revert NoRefundAvailable();
         }
 
         // Effects
         uint128 amount = user.usdtOwed;
-        userVesting[refundee].usdtOwed = 0;
+        _userVesting[refundee].usdtOwed = 0;
 
         // Interactions
         USDT_TOKEN.approve(refundee, amount);
@@ -309,14 +309,14 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     // External function to refund USDC to a buyer
     function refundUsdc(address refundee) external nonReentrant {
         // Checks
-        User memory user = userVesting[refundee];
+        User memory user = _userVesting[refundee];
         if (user.usdcOwed <= 0) {
             revert NoRefundAvailable();
         }
 
         // Effects
         uint128 amount = user.usdcOwed;
-        userVesting[refundee].usdcOwed = 0;
+        _userVesting[refundee].usdcOwed = 0;
 
         // Interactions
         USDC_TOKEN.approve(refundee, amount);

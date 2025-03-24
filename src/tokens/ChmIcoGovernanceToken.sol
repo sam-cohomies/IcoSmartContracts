@@ -12,12 +12,16 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
     uint128 private constant ALLOCATION_LIQUIDITY_POOLS = 0;
     uint128 private constant ALLOCATION_LIQUIDITY_REWARDS = 0;
 
-    string public constant _NAME = "CoHomies ICO Governance";
-
     mapping(address => bool) private _distributors;
 
     constructor(address accessControlManager_, AllocationAddresses memory allocationAddresses_)
-        ChmBaseToken(_NAME, "CIG", accessControlManager_, allocationAddresses_, [true, true, true, false])
+        ChmBaseToken(
+            "CoHomies ICO Governance",
+            "CIG",
+            accessControlManager_,
+            allocationAddresses_,
+            [true, true, true, false]
+        )
     {
         _distributors[allocationAddresses_.presaleIco] = true;
         _distributors[allocationAddresses_.marketing] = true;

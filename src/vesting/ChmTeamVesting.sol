@@ -8,10 +8,10 @@ import {Fraction} from "../utils/Structs.sol";
 contract ChmTeamVesting is ChmSharesVesting {
     error ShareholderAlreadyAdded();
 
-    Fraction[] internal shareFractions;
+    Fraction[] internal _shareFractions;
 
-    constructor(address _accessControlManager, address chmToken_, address chmIcoGovernanceToken_)
-        ChmSharesVesting(_accessControlManager, chmToken_, chmIcoGovernanceToken_, 0, 365 days, 365 days, 0)
+    constructor(address accessControlManager_, address chmToken_, address chmIcoGovernanceToken_)
+        ChmSharesVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, 0, 365 days, 365 days, 0)
     {}
 
     function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted nonReentrant {
@@ -21,11 +21,11 @@ contract ChmTeamVesting is ChmSharesVesting {
             if (shareholders[i] == shareholder) {
                 revert ShareholderAlreadyAdded();
             }
-            shareFractions[i].numerator = shareFractions[i].numerator * dilution.numerator;
-            shareFractions[i].denominator = shareFractions[i].denominator * dilution.denominator;
+            _shareFractions[i].numerator = _shareFractions[i].numerator * dilution.numerator;
+            _shareFractions[i].denominator = _shareFractions[i].denominator * dilution.denominator;
         }
         shareholders.push(shareholder);
-        shareFractions.push(shareFraction);
+        _shareFractions.push(shareFraction);
         sharesOwed.push(0);
         uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
         if (shareholders.length == 1) {
@@ -38,12 +38,12 @@ contract ChmTeamVesting is ChmSharesVesting {
 
     function _allocateSharesFromFractions() internal vestingNotStarted {
         uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
-        if (chmBalance == 0 || shareholders.length == 0 || shareFractions.length == 0) {
+        if (chmBalance == 0 || shareholders.length == 0 || _shareFractions.length == 0) {
             revert NothingToRelease();
         }
         totalSharesOwed = 0;
         for (uint256 i = 0; i < shareholders.length - 1; i++) {
-            sharesOwed[i] = (chmBalance * shareFractions[i].numerator / shareFractions[i].denominator);
+            sharesOwed[i] = (chmBalance * _shareFractions[i].numerator / _shareFractions[i].denominator);
             totalSharesOwed += sharesOwed[i];
         }
     }

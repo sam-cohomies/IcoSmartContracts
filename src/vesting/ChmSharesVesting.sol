@@ -34,7 +34,7 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         uint128 maxShares = sharesOwed[0];
         for (uint256 i = 0; i < shareholders.length; i++) {
             uint128 chmToAllocate = chmForShares * sharesOwed[i] / totalSharesOwed;
-            userVesting[shareholders[i]].chmOwed += chmToAllocate;
+            _userVesting[shareholders[i]].chmOwed += chmToAllocate;
             chmAllocated += chmToAllocate;
             if (sharesOwed[i] > maxShares) {
                 maxShareholder = shareholders[i];
@@ -42,7 +42,7 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
             }
         }
         if (chmAllocated < chmForShares) {
-            userVesting[maxShareholder].chmOwed += chmForShares - chmAllocated;
+            _userVesting[maxShareholder].chmOwed += chmForShares - chmAllocated;
         }
     }
 

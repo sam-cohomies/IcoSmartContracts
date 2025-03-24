@@ -17,30 +17,30 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     event VestingBegun();
     event Released();
 
-    mapping(address => User) internal userVesting;
+    mapping(address => User) internal _userVesting;
 
     ChmBaseToken public immutable CHM_TOKEN;
     ChmBaseToken public immutable CHM_ICO_GOVERNANCE_TOKEN;
 
     uint256 public start;
-    uint256 public immutable DELAY;
-    uint256 public immutable CLIFF;
-    uint256 public immutable DURATION;
+    uint256 public immutable DELAY_;
+    uint256 public immutable CLIFF_;
+    uint256 public immutable DURATION_;
 
     constructor(
         address accessControlManager_,
         address chmToken_,
         address chmIcoGovernanceToken_,
-        uint256 delay,
-        uint256 cliff,
-        uint256 duration
+        uint256 delay_,
+        uint256 cliff_,
+        uint256 duration_
     ) AccessManaged(accessControlManager_) {
         if (chmToken_ == address(0)) {
             revert ChmAddressNotSet();
         }
-        DELAY = delay;
-        CLIFF = cliff;
-        DURATION = duration;
+        DELAY_ = delay_;
+        CLIFF_ = cliff_;
+        DURATION_ = duration_;
         CHM_TOKEN = ChmBaseToken(chmToken_);
         CHM_ICO_GOVERNANCE_TOKEN = ChmBaseToken(chmIcoGovernanceToken_);
     }
@@ -53,7 +53,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     }
 
     function _startVestingBoilerplate() internal virtual {
-        start = block.timestamp + DELAY;
+        start = block.timestamp + DELAY_;
         emit VestingBegun();
     }
 
@@ -65,11 +65,11 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         if (start == 0) {
             revert VestingNotBegun();
         }
-        uint128 amount = _vestingSchedule(user) - userVesting[user].chmReleased;
+        uint128 amount = _vestingSchedule(user) - _userVesting[user].chmReleased;
         if (amount == 0) {
             revert NothingToRelease();
         }
-        userVesting[user].chmReleased += amount;
+        _userVesting[user].chmReleased += amount;
         if (!CHM_TOKEN.approve(user, amount)) {
             revert TransferFailed();
         }
@@ -78,11 +78,11 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     }
 
     function released(address user) external restricted returns (uint128) {
-        return userVesting[user].chmReleased;
+        return _userVesting[user].chmReleased;
     }
 
     function totalOwed(address user) external restricted returns (uint128) {
-        return userVesting[user].chmOwed;
+        return _userVesting[user].chmOwed;
     }
 
     function vestedAmount(address user) external restricted returns (uint128) {
@@ -90,11 +90,11 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     }
 
     function released() external view returns (uint128) {
-        return userVesting[msg.sender].chmReleased;
+        return _userVesting[msg.sender].chmReleased;
     }
 
     function totalOwed() external view returns (uint128) {
-        return userVesting[msg.sender].chmOwed;
+        return _userVesting[msg.sender].chmOwed;
     }
 
     function vestedAmount() external view returns (uint128) {
@@ -102,12 +102,12 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
     }
 
     function _vestingSchedule(address user) internal view returns (uint128) {
-        if (block.timestamp < start + CLIFF) {
+        if (block.timestamp < start + CLIFF_) {
             return 0;
-        } else if (block.timestamp >= start + DURATION) {
-            return userVesting[user].chmOwed;
+        } else if (block.timestamp >= start + DURATION_) {
+            return _userVesting[user].chmOwed;
         } else {
-            return uint128((userVesting[user].chmOwed * (block.timestamp - start)) / DURATION);
+            return uint128((_userVesting[user].chmOwed * (block.timestamp - start)) / DURATION_);
         }
     }
 }

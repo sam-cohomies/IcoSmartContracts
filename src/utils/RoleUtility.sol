@@ -13,17 +13,17 @@ contract RoleUtility is AccessManaged {
     mapping(string => Role) private roleMapping;
 
     // List of all role names for enumeration purposes
-    string[] private roleNames;
+    string[] private _roleNames;
 
     // Custom errors
     error RoleAlreadyExists(string roleName);
     error RoleDoesNotExist(string roleName);
 
-    constructor(address _accessControlManager, string[] memory initialRoles) AccessManaged(_accessControlManager) {
+    constructor(address accessControlManager_, string[] memory initialRoles_) AccessManaged(accessControlManager_) {
         // Initialize with predefined roles
-        uint256 initialRolesLength = initialRoles.length;
-        for (uint256 i = 0; i < initialRolesLength; ++i) {
-            _addRole(initialRoles[i]);
+        uint256 initialRoles_Length = initialRoles_.length;
+        for (uint256 i = 0; i < initialRoles_Length; ++i) {
+            _addRole(initialRoles_[i]);
         }
     }
 
@@ -37,10 +37,10 @@ contract RoleUtility is AccessManaged {
         if (roleMapping[roleName].roleId != 0) {
             revert RoleAlreadyExists(roleName);
         }
-        uint64 len3 = uint64(3 * roleNames.length);
+        uint64 len3 = uint64(3 * _roleNames.length);
         Role memory role = Role(len3 + 1, len3 + 2, len3 + 3);
         roleMapping[roleName] = role;
-        roleNames.push(roleName);
+        _roleNames.push(roleName);
         emit RoleAdded(roleName, role);
     }
 
@@ -53,7 +53,7 @@ contract RoleUtility is AccessManaged {
     }
 
     // Get the full list of roles as human-readable names
-    function getAllRoleNames() external view returns (string[] memory) {
-        return roleNames;
+    function getAll_RoleNames() external view returns (string[] memory) {
+        return _roleNames;
     }
 }
