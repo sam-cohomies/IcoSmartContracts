@@ -48,11 +48,15 @@ contract ChmTeamVesting is ChmSharesVesting {
         }
     }
 
+    function _assignGovernanceTokens() internal vestingNotStarted {
+        for (uint256 i = 0; i < shareholders.length; i++) {
+            CHM_ICO_GOVERNANCE_TOKEN.transfer(shareholders[i], sharesOwed[i]);
+        }
+    }
+
     function _startVestingBoilerplate() internal override {
         _allocateSharesFromFractions();
-        for (uint256 i = 0; i < shareholders.length; i++) {
-            CHM_ICO_GOVERNANCE_TOKEN.approve(shareholders[i], sharesOwed[i]);
-        }
+        _assignGovernanceTokens();
         super._startVestingBoilerplate();
     }
 }

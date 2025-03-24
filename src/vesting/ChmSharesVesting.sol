@@ -16,12 +16,12 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
         address accessControlManager_,
         address chmToken_,
         address chmIcoGovernanceToken_,
-        uint256 delay,
-        uint256 cliff,
-        uint256 duration,
-        uint128 chmForShares
-    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, delay, cliff, duration) {
-        CHM_FOR_SHARES = chmForShares;
+        uint256 delay_,
+        uint256 cliff_,
+        uint256 duration_,
+        uint128 chmForShares_
+    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, delay_, cliff_, duration_) {
+        CHM_FOR_SHARES = chmForShares_;
     }
 
     function _allocateTokensFromShares() internal vestingNotStarted {
