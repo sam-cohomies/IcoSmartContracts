@@ -2,30 +2,29 @@
 pragma solidity ^0.8.27;
 
 import {ChmSharesVesting} from "./ChmSharesVesting.sol";
+import {VestingTerms} from "../utils/Structs.sol";
 
 // TODO: upgradable?
 
 contract ChmMarketingVesting is ChmSharesVesting {
-    uint128 public constant CHM_FOR_AFFILIATE_MARKETING = 100_000_000 * 1e18; // 100,000,000 CHM
+    uint96 public constant CHM_FOR_AFFILIATE_MARKETING = 100_000_000 * 1e18; // 100,000,000 CHM
 
     mapping(address => uint256) private _affiliateMarketers;
 
-    event TokensAllocated(address indexed marketer, uint128 chm, string cid);
+    event TokensAllocated(address indexed marketer, uint96 chm, string cid);
 
     constructor(address accessControlManager_, address chmToken_, address chmIcoGovernanceToken_)
         ChmSharesVesting(
             accessControlManager_,
             chmToken_,
             chmIcoGovernanceToken_,
-            2 days,
-            0,
-            30 days,
+            VestingTerms(2 days, 0, 30 days),
             CHM_FOR_AFFILIATE_MARKETING
         )
     {}
 
     // TODO: hook this up to ICO contract
-    function allocateAffiliateMarketingShares(address marketer, uint128 shares) external restricted nonReentrant {
+    function allocateAffiliateMarketingShares(address marketer, uint96 shares) external restricted nonReentrant {
         if (_affiliateMarketers[marketer] == 0) {
             shareholders.push(marketer);
             _affiliateMarketers[marketer] = shareholders.length;
@@ -36,7 +35,7 @@ contract ChmMarketingVesting is ChmSharesVesting {
         totalSharesOwed += shares;
     }
 
-    function allocateMarketingTokens(address marketer, uint128 chm, string calldata cid)
+    function allocateMarketingTokens(address marketer, uint96 chm, string calldata cid)
         external
         restricted
         nonReentrant

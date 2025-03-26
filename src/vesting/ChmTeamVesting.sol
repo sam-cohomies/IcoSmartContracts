@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {ChmSharesVesting} from "./ChmSharesVesting.sol";
-import {Fraction} from "../utils/Structs.sol";
+import {Fraction, VestingTerms} from "../utils/Structs.sol";
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmTeamVesting is ChmSharesVesting {
@@ -11,7 +11,7 @@ contract ChmTeamVesting is ChmSharesVesting {
     Fraction[] internal _shareFractions;
 
     constructor(address accessControlManager_, address chmToken_, address chmIcoGovernanceToken_)
-        ChmSharesVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, 0, 365 days, 365 days, 0)
+        ChmSharesVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, VestingTerms(0, 365 days, 365 days), 0)
     {}
 
     function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted nonReentrant {
@@ -27,7 +27,7 @@ contract ChmTeamVesting is ChmSharesVesting {
         shareholders.push(shareholder);
         _shareFractions.push(shareFraction);
         sharesOwed.push(0);
-        uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
+        uint96 chmBalance = uint96(CHM_TOKEN.balanceOf(address(this)));
         if (shareholders.length == 1) {
             sharesOwed[0] = chmBalance;
             totalSharesOwed = chmBalance;
@@ -37,13 +37,13 @@ contract ChmTeamVesting is ChmSharesVesting {
     }
 
     function _allocateSharesFromFractions() internal vestingNotStarted {
-        uint128 chmBalance = uint128(CHM_TOKEN.balanceOf(address(this)));
+        uint96 chmBalance = uint96(CHM_TOKEN.balanceOf(address(this)));
         if (chmBalance == 0 || shareholders.length == 0 || _shareFractions.length == 0) {
             revert NothingToRelease();
         }
         totalSharesOwed = 0;
         for (uint256 i = 0; i < shareholders.length - 1; i++) {
-            sharesOwed[i] = (chmBalance * _shareFractions[i].numerator / _shareFractions[i].denominator);
+            sharesOwed[i] = uint96(chmBalance * _shareFractions[i].numerator / _shareFractions[i].denominator);
             totalSharesOwed += sharesOwed[i];
         }
     }

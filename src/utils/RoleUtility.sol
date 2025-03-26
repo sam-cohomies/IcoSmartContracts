@@ -37,14 +37,14 @@ contract RoleUtility is AccessManaged {
         if (roleMapping[roleName].roleId != 0) {
             revert RoleAlreadyExists(roleName);
         }
-        uint64 len3 = uint64(3 * _roleNames.length);
+        uint16 len3 = uint16(3 * _roleNames.length);
         Role memory role = Role(len3 + 1, len3 + 2, len3 + 3);
         roleMapping[roleName] = role;
         _roleNames.push(roleName);
         emit RoleAdded(roleName, role);
     }
 
-    // Get the uint64 IDs of a role by name
+    // Get the uint16 IDs of a role by name
     function getRoleIds(string memory roleName) external view returns (Role memory) {
         if (roleMapping[roleName].roleId == 0) {
             revert RoleDoesNotExist(roleName);

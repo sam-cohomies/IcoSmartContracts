@@ -7,7 +7,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/v0.8/shared/interfaces
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ChmBaseVesting} from "./ChmBaseVesting.sol";
-import {Stage, User} from "../utils/Structs.sol";
+import {Stage, User, VestingTerms} from "../utils/Structs.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
 import {IcoState, Currency} from "../utils/Enums.sol";
 
@@ -15,7 +15,6 @@ using SafeERC20 for IERC20;
 
 /// @custom:security-contact sam@cohomies.io
 contract ChmIco is ReentrancyGuard, ChmBaseVesting {
-    error ZeroAddressNotAllowed();
     error InvalidIcoState(IcoState state);
     error InvalidBuyer();
     error InsufficientPayment();
@@ -61,8 +60,12 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         address treasury_,
         address teamVesting_,
         address marketingVesting_
-    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, 2 days, 0, 30 days) {
-        if (usdtToken_ == address(0) || usdcToken_ == address(0)) {
+    ) ChmBaseVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, VestingTerms(2 days, 0, 30 days)) {
+        if (
+            chmToken_ == address(0) || chmIcoGovernanceToken_ == address(0) || usdtToken_ == address(0)
+                || usdcToken_ == address(0) || wethToken_ == address(0) || treasury_ == address(0)
+                || teamVesting_ == address(0) || marketingVesting_ == address(0)
+        ) {
             revert ZeroAddressNotAllowed();
         }
         USDT_TOKEN = IERC20(usdtToken_);

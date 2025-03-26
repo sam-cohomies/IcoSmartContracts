@@ -33,3 +33,18 @@ struct AllocationAddresses {
     address team;
     address liquidityPools;
 }
+
+struct VestingTerms {
+    uint32 delay; // Delay before vesting starts using solidity default encoding (min uint32)
+    // During cliff, tokens vested increase linearly, but remain locked.
+    // Once cliff ends, the already vested tokens are released.
+    uint32 cliffDuration; // (min uint32)
+    uint32 vestingDuration; // Total duration of vesting using solidity default encoding (min uint32)
+}
+
+struct OffChainSignature {
+    address user;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+}
