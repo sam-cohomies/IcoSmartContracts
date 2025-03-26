@@ -65,7 +65,7 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         if (start == 0) {
             revert VestingNotBegun();
         }
-        uint128 amount = _vestingSchedule(user) - _userVesting[user].chmReleased;
+        uint96 amount = _vestingSchedule(user) - _userVesting[user].chmReleased;
         if (amount == 0) {
             revert NothingToRelease();
         }
@@ -101,13 +101,13 @@ abstract contract ChmBaseVesting is AccessManaged, ReentrancyGuard {
         return _vestingSchedule(msg.sender);
     }
 
-    function _vestingSchedule(address user) internal view returns (uint128) {
+    function _vestingSchedule(address user) internal view returns (uint96) {
         if (block.timestamp < start + CLIFF_) {
             return 0;
         } else if (block.timestamp >= start + DURATION_) {
             return _userVesting[user].chmOwed;
         } else {
-            return uint128((_userVesting[user].chmOwed * (block.timestamp - start)) / DURATION_);
+            return uint96((_userVesting[user].chmOwed * (block.timestamp - start)) / DURATION_);
         }
     }
 }
