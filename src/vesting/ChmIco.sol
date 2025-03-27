@@ -7,6 +7,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/v0.8/shared/interfaces
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ChmBaseVesting} from "./ChmBaseVesting.sol";
+import {ChmMarketingVesting} from "./ChmMarketing.sol";
 import {Stage, User, VestingTerms} from "../utils/Structs.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
 import {IcoState, Currency} from "../utils/Enums.sol";
@@ -23,6 +24,9 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     error NoRefundAvailable();
 
     event TokensPurchased(address indexed buyer, uint256 amount, Currency currency, uint256 payment);
+    event TokensPurchasedWithAffiliate(
+        address indexed buyer, uint256 amount, Currency currency, uint256 payment, string affiliateCode
+    );
     event IcoSucceeded();
     event IcoFailed();
     event ProgressedStage(IcoState newState);
@@ -48,7 +52,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
 
     address private immutable _TREASURY;
     ChmBaseVesting public immutable TEAM_VESTING;
-    ChmBaseVesting public immutable MARKETING_VESTING;
+    ChmMarketingVesting public immutable MARKETING_VESTING;
 
     constructor(
         address accessControlManager_,
@@ -73,7 +77,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         WETH_TOKEN = IWETH(wethToken_);
         _TREASURY = treasury_;
         TEAM_VESTING = ChmBaseVesting(teamVesting_);
-        MARKETING_VESTING = ChmBaseVesting(marketingVesting_);
+        MARKETING_VESTING = ChmMarketingVesting(marketingVesting_);
         // TODO: Decide how long _stages should last
         // TODO: Do some modelling to decide on stage details
         _stages.push(Stage(1_000_000, uint32(block.timestamp), 30 days, 1_000_000));
@@ -133,8 +137,35 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         Currency currency,
         IcoState expectedState
     ) external payable nonReentrant icoActive allowedToPurchase(buyer) {
-        uint96 expectedTokens = purchaseDetails[0];
-        uint96 payment = purchaseDetails[1];
+        _processPurchase(buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, false, "", 0);
+    }
+
+    function purchaseTokensWithAffiliateCode(
+        address buyer,
+        uint96[2] calldata purchaseDetails,
+        Currency currency,
+        IcoState expectedState,
+        string calldata affiliateCode
+    ) external payable nonReentrant icoActive allowedToPurchase(buyer) {
+        // Apply affiliate discount
+        uint8 discount = MARKETING_VESTING.CHM_AFFILIATE_DISCOUNT();
+        uint96 discountBps = uint96(discount * 100); // Convert percentage to basis points
+
+        _processPurchase(
+            buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, true, affiliateCode, discountBps
+        );
+    }
+
+    function _processPurchase(
+        address buyer,
+        uint96 expectedTokens,
+        uint96 payment,
+        Currency currency,
+        IcoState expectedState,
+        bool useAffiliate,
+        string memory affiliateCode,
+        uint96 discountBps
+    ) private {
         // Checks
         if (_icoState != expectedState) {
             revert InvalidIcoState(_icoState);
@@ -143,21 +174,22 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         if (currentStage.tokensAvailable < expectedTokens) {
             revert InsufficientTokensAvailable();
         }
-        uint96 cost;
+
+        // Calculate cost with potential discount
+        uint96 cost = _calculateCost(expectedTokens, currentStage.price, currency, discountBps);
+
+        // Verify payment
         if (currency == Currency.USDT) {
-            cost = uint96(expectedTokens * currentStage.price);
             if (USDT_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
             _userVesting[buyer].usdtOwed += cost;
         } else if (currency == Currency.USDC) {
-            cost = uint96(expectedTokens * currentStage.price);
             if (USDC_TOKEN.allowance(buyer, address(this)) < cost) {
                 revert InsufficientPayment();
             }
             _userVesting[buyer].usdcOwed += cost;
         } else if (currency == Currency.ETH) {
-            cost = uint96((expectedTokens * currentStage.price * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals));
             if (msg.value < cost) {
                 revert InsufficientPayment();
             }
@@ -165,6 +197,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         } else {
             revert UnsupportedCurrency();
         }
+
         if (payment < cost) {
             revert InsufficientPayment();
         }
@@ -174,6 +207,12 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         currentStage.tokensAvailable -= expectedTokens;
         _raisedAmount += uint64(expectedTokens * currentStage.price);
         _chmSold += uint32(expectedTokens);
+
+        // Affiliate logic
+        if (useAffiliate) {
+            MARKETING_VESTING.allocateAffiliateMarketingSales(affiliateCode, expectedTokens);
+        }
+
         if (currentStage.tokensAvailable == 0 || block.timestamp >= currentStage.startTime + currentStage.duration) {
             _progressStage();
         }
@@ -182,10 +221,43 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         if (!CHM_ICO_GOVERNANCE_TOKEN.approve(buyer, expectedTokens)) {
             revert TransferFailed();
         }
+
+        _handlePayment(buyer, currency, cost);
+
+        // Emit appropriate event
+        if (useAffiliate) {
+            emit TokensPurchasedWithAffiliate(buyer, expectedTokens, currency, payment, affiliateCode);
+        } else {
+            emit TokensPurchased(buyer, expectedTokens, currency, payment);
+        }
+    }
+
+    function _calculateCost(uint96 tokenAmount, uint256 price, Currency currency, uint96 discountBps)
+        private
+        view
+        returns (uint96)
+    {
+        uint256 baseAmount = tokenAmount * price;
+
+        // Apply discount if any
+        if (discountBps > 0) {
+            baseAmount = baseAmount * (10000 - discountBps) / 10000;
+        }
+
+        if (currency == Currency.ETH) {
+            return uint96((baseAmount * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals));
+        }
+
+        return uint96(baseAmount);
+    }
+
+    function _handlePayment(address buyer, Currency currency, uint96 cost) private {
         uint256 ethToRefund = 0;
+
         if (msg.value > 0) {
             WETH_TOKEN.deposit{value: msg.value}();
         }
+
         if (currency == Currency.ETH) {
             ethToRefund = msg.value - cost;
         } else {
@@ -196,13 +268,12 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
                 USDC_TOKEN.safeTransferFrom(buyer, address(this), cost);
             }
         }
+
         if (ethToRefund > 0) {
             if (!WETH_TOKEN.approve(buyer, ethToRefund)) {
                 revert TransferFailed();
             }
         }
-
-        emit TokensPurchased(buyer, expectedTokens, currency, payment);
     }
 
     function progressStage() external nonReentrant restricted icoActive {
