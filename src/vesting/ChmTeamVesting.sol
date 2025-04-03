@@ -11,13 +11,20 @@ contract ChmTeamVesting is ChmSharesVesting {
     Fraction[] internal _shareFractions;
 
     constructor(address accessControlManager_, address chmToken_, address chmIcoGovernanceToken_)
-        ChmSharesVesting(accessControlManager_, chmToken_, chmIcoGovernanceToken_, VestingTerms(0, 365 days, 365 days), 0)
+        ChmSharesVesting(
+            accessControlManager_,
+            chmToken_,
+            chmIcoGovernanceToken_,
+            VestingTerms(0, 365 days, 365 days),
+            0
+        )
     {}
 
     function addShareholder(address shareholder, Fraction calldata shareFraction) external restricted nonReentrant {
         Fraction memory dilution =
             Fraction(shareFraction.denominator - shareFraction.numerator, shareFraction.denominator);
-        for (uint256 i = 0; i < shareholders.length - 1; i++) {
+        uint256 shareholdersLength = shareholders.length;
+        for (uint256 i = 0; i < shareholdersLength - 1; ++i) {
             if (shareholders[i] == shareholder) {
                 revert ShareholderAlreadyAdded();
             }
@@ -38,18 +45,20 @@ contract ChmTeamVesting is ChmSharesVesting {
 
     function _allocateSharesFromFractions() internal vestingNotStarted {
         uint96 chmBalance = uint96(CHM_TOKEN.balanceOf(address(this)));
-        if (chmBalance == 0 || shareholders.length == 0 || _shareFractions.length == 0) {
+        uint256 shareholdersLength = shareholders.length;
+        if (chmBalance == 0 || shareholdersLength == 0 || _shareFractions.length == 0) {
             revert NothingToRelease();
         }
         totalSharesOwed = 0;
-        for (uint256 i = 0; i < shareholders.length - 1; i++) {
+        for (uint256 i = 0; i < shareholdersLength - 1; ++i) {
             sharesOwed[i] = uint96(chmBalance * _shareFractions[i].numerator / _shareFractions[i].denominator);
             totalSharesOwed += sharesOwed[i];
         }
     }
 
     function _assignGovernanceTokens() internal vestingNotStarted {
-        for (uint256 i = 0; i < shareholders.length; i++) {
+        uint256 shareholdersLength = shareholders.length;
+        for (uint256 i = 0; i < shareholdersLength; ++i) {
             CHM_ICO_GOVERNANCE_TOKEN.transfer(shareholders[i], sharesOwed[i]);
         }
     }

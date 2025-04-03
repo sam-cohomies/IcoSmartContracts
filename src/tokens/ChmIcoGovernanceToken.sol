@@ -35,7 +35,12 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
         _;
     }
 
-    function transfer(address recipient, uint256 amount) public override onlyDistributor(msg.sender) returns (bool) {
+    function transfer(address recipient, uint256 amount)
+        public
+        override
+        onlyDistributor(msg.sender)
+        returns (bool)
+    {
         return super.transfer(recipient, amount);
     }
 

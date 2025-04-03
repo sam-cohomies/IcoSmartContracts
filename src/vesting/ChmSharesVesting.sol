@@ -24,14 +24,15 @@ abstract contract ChmSharesVesting is ChmBaseVesting {
 
     function _allocateTokensFromShares() internal vestingNotStarted {
         uint96 chmBalance = uint96(CHM_TOKEN.balanceOf(address(this)));
-        if (chmBalance == 0 || shareholders.length == 0 || sharesOwed.length == 0) {
+        uint256 shareholdersLength = shareholders.length;
+        if (chmBalance == 0 || shareholdersLength == 0 || sharesOwed.length == 0) {
             revert NothingToRelease();
         }
         uint96 chmForShares = CHM_FOR_SHARES > 0 ? CHM_FOR_SHARES : chmBalance;
         uint96 chmAllocated = 0;
         address maxShareholder = shareholders[0];
         uint96 maxShares = sharesOwed[0];
-        for (uint256 i = 0; i < shareholders.length; i++) {
+        for (uint256 i = 0; i < shareholdersLength; ++i) {
             uint96 chmToAllocate = chmForShares * sharesOwed[i] / totalSharesOwed;
             _userVesting[shareholders[i]].chmOwed += chmToAllocate;
             chmAllocated += chmToAllocate;

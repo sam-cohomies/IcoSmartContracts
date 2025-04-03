@@ -14,8 +14,8 @@ contract ChmMarketingVesting is ChmSharesVesting {
     mapping(uint24 => address) private _seedToMarketer;
     mapping(address => uint256) private _marketerToShareholderIndex;
 
-    event TokensAllocated(address indexed marketer, uint96 chm, string cid);
-    event AffiliateRegistered(address indexed affiliate, string code);
+    event TokensAllocated(address indexed marketer, uint96 indexed chm, string indexed cid);
+    event AffiliateRegistered(address indexed affiliate, string indexed code);
 
     error InvalidAddress(address addr);
 
@@ -29,7 +29,7 @@ contract ChmMarketingVesting is ChmSharesVesting {
         )
     {}
 
-    function registerAffiliate(address marketer) external nonReentrant returns (string memory) {
+    function registerAffiliate(address marketer) external nonReentrant returns (string memory code) {
         if (marketer == address(0)) {
             revert InvalidAddress(marketer);
         }
@@ -38,15 +38,11 @@ contract ChmMarketingVesting is ChmSharesVesting {
             revert InvalidAddress(marketer);
         }
         _seedToMarketer[seed] = marketer;
-        string memory code = ChmAffiliateCodes.getCodeFromSeed(seed);
+        code = ChmAffiliateCodes.getCodeFromSeed(seed);
         emit AffiliateRegistered(marketer, code);
-        return code;
     }
 
-    // TODO: hook this up to ICO contract
-    function allocateAffiliateMarketingSales(string calldata code, uint96 chmSold) external restricted nonReentrant {
-        uint24 seed = ChmAffiliateCodes.getSeedFromCode(code);
-        address marketer = _seedToMarketer[seed];
+    function allocateAffiliateMarketingSales(address marketer, uint96 chmSold) external restricted nonReentrant {
         if (marketer == address(0)) {
             revert InvalidAddress(marketer);
         }
@@ -70,5 +66,14 @@ contract ChmMarketingVesting is ChmSharesVesting {
         }
         _userVesting[marketer].chmOwed += chm;
         emit TokensAllocated(marketer, chm, cid);
+    }
+
+    function getMarketerFromCode(string calldata code) external view returns (address marketer) {
+        marketer = _getMarketerFromCode(code);
+    }
+
+    function _getMarketerFromCode(string calldata code) internal view returns (address marketer) {
+        uint24 seed = ChmAffiliateCodes.getSeedFromCode(code);
+        marketer = _seedToMarketer[seed];
     }
 }

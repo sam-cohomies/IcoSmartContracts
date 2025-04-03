@@ -22,19 +22,17 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     error UnsupportedCurrency();
     error InsufficientTokensAvailable();
     error NoRefundAvailable();
+    error InvalidMarketingCode(string code);
 
     event TokensPurchased(address indexed buyer, uint256 amount, Currency currency, uint256 payment);
-    event TokensPurchasedWithAffiliate(
-        address indexed buyer, uint256 amount, Currency currency, uint256 payment, string affiliateCode
-    );
     event IcoSucceeded();
     event IcoFailed();
     event ProgressedStage(IcoState newState);
     event RefundIssued(address indexed refundee, uint256 amount, Currency currency);
 
-    Stage[] private _stages;
+    Stage[] public _stages;
 
-    IcoState private _icoState;
+    IcoState public _icoState;
 
     mapping(address => bool) private _whitelist;
 
@@ -126,9 +124,9 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         _;
     }
 
-    function getLatestUsdtEthPrice() public view returns (uint256) {
-        (, int256 price,,,) = usdtEthPriceFeed.latestRoundData();
-        return uint256(price);
+    function getLatestUsdtEthPrice() public view returns (uint256 usdtEthPrice) {
+        (, int256 answer,,,) = usdtEthPriceFeed.latestRoundData();
+        usdtEthPrice = uint256(answer);
     }
 
     function purchaseTokens(
@@ -137,7 +135,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         Currency currency,
         IcoState expectedState
     ) external payable nonReentrant icoActive allowedToPurchase(buyer) {
-        _processPurchase(buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, false, "", 0);
+        _processPurchase(buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, address(0), 0);
     }
 
     function purchaseTokensWithAffiliateCode(
@@ -147,12 +145,18 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         IcoState expectedState,
         string calldata affiliateCode
     ) external payable nonReentrant icoActive allowedToPurchase(buyer) {
+        // Check if the affiliate code is valid
+        address marketer = MARKETING_VESTING.getMarketerFromCode(affiliateCode);
+        if (marketer == address(0)) {
+            revert InvalidMarketingCode(affiliateCode);
+        }
+
         // Apply affiliate discount
         uint8 discount = MARKETING_VESTING.CHM_AFFILIATE_DISCOUNT();
         uint96 discountBps = uint96(discount * 100); // Convert percentage to basis points
 
         _processPurchase(
-            buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, true, affiliateCode, discountBps
+            buyer, purchaseDetails[0], purchaseDetails[1], currency, expectedState, marketer, discountBps
         );
     }
 
@@ -162,8 +166,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         uint96 payment,
         Currency currency,
         IcoState expectedState,
-        bool useAffiliate,
-        string memory affiliateCode,
+        address affiliateMarketer,
         uint96 discountBps
     ) private {
         // Checks
@@ -209,11 +212,12 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         _chmSold += uint32(expectedTokens);
 
         // Affiliate logic
-        if (useAffiliate) {
-            MARKETING_VESTING.allocateAffiliateMarketingSales(affiliateCode, expectedTokens);
+        if (affiliateMarketer != address(0)) {
+            MARKETING_VESTING.allocateAffiliateMarketingSales(affiliateMarketer, expectedTokens);
         }
 
-        if (currentStage.tokensAvailable == 0 || block.timestamp >= currentStage.startTime + currentStage.duration) {
+        if (currentStage.tokensAvailable == 0 || (currentStage.startTime + currentStage.duration) < block.timestamp)
+        {
             _progressStage();
         }
 
@@ -224,18 +228,13 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
 
         _handlePayment(buyer, currency, cost);
 
-        // Emit appropriate event
-        if (useAffiliate) {
-            emit TokensPurchasedWithAffiliate(buyer, expectedTokens, currency, payment, affiliateCode);
-        } else {
-            emit TokensPurchased(buyer, expectedTokens, currency, payment);
-        }
+        emit TokensPurchased(buyer, expectedTokens, currency, payment);
     }
 
     function _calculateCost(uint96 tokenAmount, uint256 price, Currency currency, uint96 discountBps)
         private
         view
-        returns (uint96)
+        returns (uint96 cost)
     {
         uint256 baseAmount = tokenAmount * price;
 
@@ -245,10 +244,10 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         }
 
         if (currency == Currency.ETH) {
-            return uint96((baseAmount * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals));
+            return cost = uint96((baseAmount * getLatestUsdtEthPrice()) / (10 ** chainlinkDecimals));
         }
 
-        return uint96(baseAmount);
+        cost = uint96(baseAmount);
     }
 
     function _handlePayment(address buyer, Currency currency, uint96 cost) private {
@@ -285,7 +284,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     }
 
     function _endIco() internal icoActive {
-        if (_raisedAmount >= MINIMUM_RAISE) {
+        if (MINIMUM_RAISE < _raisedAmount) {
             _icoSucceeded();
         } else {
             _icoFailed();
@@ -346,7 +345,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     function refundEth(address refundee) external nonReentrant {
         // Checks
         User memory user = _userVesting[refundee];
-        if (user.ethOwed <= 0) {
+        if (0 > user.ethOwed) {
             revert NoRefundAvailable();
         }
 
@@ -363,7 +362,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     function refundUdst(address refundee) external nonReentrant {
         // Checks
         User memory user = _userVesting[refundee];
-        if (user.usdtOwed <= 0) {
+        if (0 > user.usdtOwed) {
             revert NoRefundAvailable();
         }
 
@@ -380,7 +379,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
     function refundUsdc(address refundee) external nonReentrant {
         // Checks
         User memory user = _userVesting[refundee];
-        if (user.usdcOwed <= 0) {
+        if (0 > user.usdcOwed) {
             revert NoRefundAvailable();
         }
 
@@ -393,11 +392,7 @@ contract ChmIco is ReentrancyGuard, ChmBaseVesting {
         emit RefundIssued(refundee, amount, Currency.USDC);
     }
 
-    function getIcoState() external view returns (IcoState) {
-        return _icoState;
-    }
-
-    function getStageDetails() external view returns (Stage memory) {
-        return _stages[uint256(_icoState)];
+    function getCurrentStageDetails() external view returns (Stage memory stage) {
+        stage = _stages[uint256(_icoState)];
     }
 }

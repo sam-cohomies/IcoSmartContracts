@@ -59,46 +59,51 @@ abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes,
         }
     }
 
-    function getAllocation(AllocationType allocationType) public pure returns (uint128) {
+    function getAllocation(AllocationType allocationType) public pure returns (uint128 allocation) {
         if (allocationType == AllocationType.PRESALE_ICO) {
-            return ALLOCATION_PRESALE_ICO;
+            allocation = ALLOCATION_PRESALE_ICO;
         } else if (allocationType == AllocationType.MARKETING) {
-            return ALLOCATION_MARKETING;
+            allocation = ALLOCATION_MARKETING;
         } else if (allocationType == AllocationType.TEAM) {
-            return ALLOCATION_TEAM;
+            allocation = ALLOCATION_TEAM;
         } else if (allocationType == AllocationType.LIQUIDITY_POOLS) {
-            return ALLOCATION_LIQUIDITY_POOLS;
+            allocation = ALLOCATION_LIQUIDITY_POOLS;
+        } else {
+            revert InvalidAllocationType();
+        }
+    }
+
+    function getRemainingAllocation(AllocationType allocationType)
+        public
+        view
+        returns (uint256 remainingAllocation)
+    {
+        if (allocationType == AllocationType.PRESALE_ICO) {
+            remainingAllocation = balanceOf(ALLOCATION_ADDRESS_PRESALE_ICO);
+        } else if (allocationType == AllocationType.MARKETING) {
+            remainingAllocation = balanceOf(ALLOCATION_ADDRESS_MARKETING);
+        } else if (allocationType == AllocationType.TEAM) {
+            remainingAllocation = balanceOf(ALLOCATION_ADDRESS_TEAM);
+        } else if (allocationType == AllocationType.LIQUIDITY_POOLS) {
+            remainingAllocation = balanceOf(ALLOCATION_ADDRESS_LIQUIDITY_POOLS);
         }
         revert InvalidAllocationType();
     }
 
-    function remainingAllocation(AllocationType allocationType) public view returns (uint256) {
-        if (allocationType == AllocationType.PRESALE_ICO) {
-            return balanceOf(ALLOCATION_ADDRESS_PRESALE_ICO);
-        } else if (allocationType == AllocationType.MARKETING) {
-            return balanceOf(ALLOCATION_ADDRESS_MARKETING);
-        } else if (allocationType == AllocationType.TEAM) {
-            return balanceOf(ALLOCATION_ADDRESS_TEAM);
-        } else if (allocationType == AllocationType.LIQUIDITY_POOLS) {
-            return balanceOf(ALLOCATION_ADDRESS_LIQUIDITY_POOLS);
-        }
-        revert InvalidAllocationType();
-    }
-
-    function clock() public view override returns (uint48) {
-        return uint48(block.timestamp);
+    function clock() public view override returns (uint48 timestamp) {
+        timestamp = uint48(block.timestamp);
     }
 
     // solhint-disable-next-line func-name-mixedcase
-    function CLOCK_MODE() public pure override returns (string memory) {
-        return "mode=timestamp";
+    function CLOCK_MODE() public pure override returns (string memory clockMode) {
+        clockMode = "mode=timestamp";
     }
 
     function _update(address from, address to, uint256 value) internal virtual override(ERC20, ERC20Votes) {
         super._update(from, to, value);
     }
 
-    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256) {
-        return super.nonces(owner);
+    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256 nonce) {
+        nonce = super.nonces(owner);
     }
 }
