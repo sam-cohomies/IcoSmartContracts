@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 struct Role {
     uint16 roleId; // can do action
@@ -14,7 +14,7 @@ struct Stage {
     uint24 price; // Price of one token in microUSDT (6 decimals) (min uint24)
 }
 
-struct User {
+struct VestingUser {
     uint96 chmOwed; // Total CHM owed to the user (18 decimals) (min uint88)
     uint96 chmReleased; // Total CHM released to the user (18 decimals) (min uint88)
     uint96 ethOwed; // Total ETH measured in wei owed to the user (18 decimals) (min uint80)

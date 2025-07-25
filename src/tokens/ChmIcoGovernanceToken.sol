@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 import {ChmBaseToken} from "./ChmBaseToken.sol";
 import {AllocationAddresses} from "../utils/Structs.sol";
@@ -39,7 +39,7 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
         public
         override
         onlyDistributor(msg.sender)
-        returns (bool)
+        returns (bool successful)
     {
         return super.transfer(recipient, amount);
     }
@@ -48,7 +48,7 @@ contract ChmIcoGovernanceToken is ChmBaseToken {
         public
         override
         onlyDistributor(sender)
-        returns (bool)
+        returns (bool successful)
     {
         return super.transferFrom(sender, recipient, amount);
     }

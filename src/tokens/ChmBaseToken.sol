@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -10,6 +10,7 @@ import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManage
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {AllocationType} from "../utils/Enums.sol";
 import {AllocationAddresses} from "../utils/Structs.sol";
+import {Errors} from "../utils/Errors.sol";
 
 /// @custom:security-contact sam@cohomies.io
 abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes, AccessManaged {
@@ -22,9 +23,6 @@ abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes,
     address private immutable ALLOCATION_ADDRESS_MARKETING;
     address private immutable ALLOCATION_ADDRESS_TEAM;
     address private immutable ALLOCATION_ADDRESS_LIQUIDITY_POOLS;
-
-    error ZeroAddressNotAllowed();
-    error InvalidAllocationType();
 
     constructor(
         string memory name_,
@@ -39,7 +37,7 @@ abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes,
                 || address(allocationAddresses_.team) == address(0)
                 || address(allocationAddresses_.liquidityPools) == address(0)
         ) {
-            revert ZeroAddressNotAllowed();
+            revert Errors.ZeroAddressNotAllowed();
         }
         ALLOCATION_ADDRESS_PRESALE_ICO = allocationAddresses_.presaleIco;
         ALLOCATION_ADDRESS_MARKETING = allocationAddresses_.marketing;
@@ -69,7 +67,7 @@ abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes,
         } else if (allocationType == AllocationType.LIQUIDITY_POOLS) {
             allocation = ALLOCATION_LIQUIDITY_POOLS;
         } else {
-            revert InvalidAllocationType();
+            revert Errors.InvalidAllocationType();
         }
     }
 
@@ -87,7 +85,7 @@ abstract contract ChmBaseToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes,
         } else if (allocationType == AllocationType.LIQUIDITY_POOLS) {
             remainingAllocation = balanceOf(ALLOCATION_ADDRESS_LIQUIDITY_POOLS);
         }
-        revert InvalidAllocationType();
+        revert Errors.InvalidAllocationType();
     }
 
     function clock() public view override returns (uint48 timestamp) {

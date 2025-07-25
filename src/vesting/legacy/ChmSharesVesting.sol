@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 import {ChmBaseVesting} from "./ChmBaseVesting.sol";
 import {VestingTerms} from "../utils/Structs.sol";
