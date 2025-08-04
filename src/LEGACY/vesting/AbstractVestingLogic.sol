@@ -41,17 +41,4 @@ abstract contract AbstractVestingLogic is IVestingLogic, AccessManaged {
         CHM_TOKEN = ChmBaseToken(chmToken_);
         CHM_ICO_GOVERNANCE_TOKEN = ChmBaseToken(chmIcoGovernanceToken_);
     }
-
-    function vestedAmount(address _user) external view override returns (uint256 amount) {
-        VestingUser storage user = _vestingUsers[_user];
-        if (start == 0 || block.timestamp < start + DELAY_) {
-            return 0;
-        }
-        uint256 elapsedTime = block.timestamp - start;
-        if (elapsedTime < CLIFF_) {
-            return 0;
-        }
-        uint256 totalVested = user.amount * elapsedTime / DURATION_;
-        return totalVested > user.amount ? user.amount : totalVested;
-    }
 }
