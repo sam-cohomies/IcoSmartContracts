@@ -47,5 +47,8 @@
     }
   },
   "workspaceFolder": "/app", // Ensure workspace is mapped correctly
-  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind" // Bind mount local project folder
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind", // Bind mount local project folder
+  "mounts": [
+    "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached"
+  ]
 }

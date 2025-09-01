@@ -15,15 +15,19 @@ contract VotingPowerRegistry is IVotingPowerRegistry {
     // Unclaimed voting power at a specific block
     Checkpoints.Trace208 private totalUnclaimedVotingPower;
 
-    function getTotalVotingPower() external view override returns (uint208) {
+    function getTotalVotingPower() external view override returns (uint208 votingPower) {
         return totalVotingPower.latest();
     }
 
-    function getTotalVotingPowerAtBlock(uint48 _blockNumber) external view override returns (uint208) {
+    function getTotalVotingPowerAtBlock(uint48 _blockNumber) external view override returns (uint208 votingPower) {
         return totalVotingPower.upperLookup(_blockNumber);
     }
 
-    function getUserVotingPowerAtBlock(address _user, uint48 _blockNumber) external view override returns (uint208)
+    function getUserVotingPowerAtBlock(address _user, uint48 _blockNumber)
+        external
+        view
+        override
+        returns (uint208 votingPower)
     {
         return userVotingPower[_user].upperLookup(_blockNumber);
     }
@@ -41,11 +45,16 @@ contract VotingPowerRegistry is IVotingPowerRegistry {
         totalVotingPower.push(uint48(block.number), totalVotingPower.latest() - _amount);
     }
 
-    function getTotalUnclaimedVotingPowerAtBlock(uint48 _blockNumber) external view override returns (uint208) {
+    function getTotalUnclaimedVotingPowerAtBlock(uint48 _blockNumber)
+        external
+        view
+        override
+        returns (uint208 votingPower)
+    {
         return totalUnclaimedVotingPower.upperLookup(_blockNumber);
     }
 
-    function getTotalUnclaimedVotingPower() external view override returns (uint208) {
+    function getTotalUnclaimedVotingPower() external view override returns (uint208 votingPower) {
         return totalUnclaimedVotingPower.latest();
     }
 }

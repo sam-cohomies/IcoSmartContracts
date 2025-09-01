@@ -1,13 +1,15 @@
-// SPDX-License-Identifier: CC0-1.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts ^5.0.0
+pragma solidity ^0.8.30;
 
-/******************************************************************************\
-* Author: Nick Mudge <nick@perfectabstractions.com>, Twitter/Github: @mudgen
-* EIP-2535 Diamonds
-/******************************************************************************/
-
-import { IDiamondCut } from "../../../interfaces/diamond/IDiamondCut.sol";
-import { LibDiamond } from "../../../lib/LibDiamond.sol"
+/**
+ * @title IDiamondLoupe
+ * @author Nick Mudge (@mudgen)
+ * @notice EIP-2535 Diamonds
+ *         Based on reference implementation by Nick Mudge.
+ */
+import {IDiamondCut} from "../../../interfaces/diamond/IDiamondCut.sol";
+import {LibDiamond} from "../../../lib/LibDiamond.sol";
 
 // Remember to add the loupe functions from DiamondLoupeFacet to the diamond.
 // The loupe functions are required by the EIP2535 Diamonds standard
@@ -19,11 +21,10 @@ contract DiamondCutFacet is IDiamondCut {
     /// @param _init The address of the contract or facet to execute _calldata
     /// @param _calldata A function call, including function selector and arguments
     ///                  _calldata is executed with delegatecall on _init
-    function diamondCut(
-        FacetCut[] calldata _diamondCut,
-        address _init,
-        bytes calldata _calldata
-    ) external override {
+    function diamondCut(FacetCut[] calldata _diamondCut, address _init, bytes calldata _calldata)
+        external
+        override
+    {
         LibDiamond.enforceIsContractOwner();
         LibDiamond.diamondCut(_diamondCut, _init, _calldata);
     }

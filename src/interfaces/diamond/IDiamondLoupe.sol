@@ -1,11 +1,12 @@
-// SPDX-License-Identifier: CC0-1.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts ^5.0.0
+pragma solidity ^0.8.30;
 
 /**
- * \
- * Author: Nick Mudge <nick@perfectabstractions.com>, Twitter/Github: @mudgen
- * EIP-2535 Diamonds
- * /*****************************************************************************
+ * @title IDiamondLoupe
+ * @author Nick Mudge (@mudgen)
+ * @notice EIP-2535 Diamonds - Interface for inspecting a diamond's facets.
+ *         Based on reference implementation by Nick Mudge.
  */
 
 // A loupe is a small magnifying glass used to look at diamonds.
